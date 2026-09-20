@@ -1,10 +1,18 @@
 # Card list — v1 (18 cards)
 
-Suit mapping carries from Calaverita's piece roster: Red/Heart = aggression,
-Blue/Ice = control, Green/Money = draw/economy, Purple/Royalty =
-utility/command, Gold/Gem = late-game power, Silver/Death = execute, plus
-the specials (Candle, Marigold Bomb, Sealed Grave, Copal Smoke) each anchor
-one signature card.
+Two different roles carry over from Calaverita's piece roster, and they're
+not the same thing:
+
+- **Suits (6, recurring tags):** Red/Heart = aggression, Blue/Ice = control,
+  Green/Money = draw/economy, Purple/Royalty = utility/command, Gold/Gem =
+  late-game power, Silver/Death = execute. These are the family a card
+  belongs to and could be stamped across many cards.
+- **Specials (one-off, not suits):** Rainbow/Catrina, Candle, Marigold
+  Bomb, Sealed Grave, Copal Smoke. Same role they had in match-3 (bombs
+  and unique clear-mechanics, not plain color pieces) — each one anchors
+  exactly one signature card and doesn't recur as a tag: Rainbow → Suerte
+  de Catrina, Candle → Vela Eterna / Llama de Copal, Marigold Bomb →
+  Bomba de Cempasúchil.
 
 | Cost | Name (ES) | Name (EN) | Type | Effect |
 |---|---|---|---|---|

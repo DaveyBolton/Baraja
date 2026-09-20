@@ -1,0 +1,6 @@
+logs_*.log
+captures/
+_art_review/
+build_*.log
+runtime_*.log
+App_create.log

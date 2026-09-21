@@ -3,8 +3,7 @@ import os
 
 FRAME_PATH = r"C:\Dev\Baraja\design\card_frame_v4_medallion_matched.png"
 GEOM_REF_PATH = r"C:\Dev\Baraja\design\card_frame_v4_nameplate2x.png"
-ART_DIR = r"C:\Dev\Baraja\design\cards_source_clean"  # backgrounds forced to
-                                                        # true black first
+ART_DIR = r"C:\Dev\Stephen-AI-Studio\ArtEngine\out\baraja_player_cards"
 SUIT_DIR = r"C:\Dev\Calaverita\App\Assets\Resources\Art\Skulls\approved"
 OUT_DIR = r"C:\Dev\Baraja\design\cards"  # Spanish (default language)
 OUT_DIR_EN = r"C:\Dev\Baraja\design\cards_en"
@@ -12,28 +11,49 @@ OUT_DIR_EN = r"C:\Dev\Baraja\design\cards_en"
 BLACK_THRESH = 90
 DARK_PLATE = (0, 0, 0)
 
+# suit assignment: the 6 recurring suits cover aggression/control/economy/
+# utility/power/execute; the specials (Candle, Marigold, Rainbow) each
+# anchor their signature card per CARDS.md. Sealed Grave and Copal Smoke
+# don't have a skull-shaped medallion icon (they're differently-shaped
+# Blocker assets in Calaverita, not skulls) so those two reuse the nearest
+# thematic skull (Silver/Death for the grave, Candle for copal-smoke).
 CARDS = [
-    dict(art="calaca_menor.png", name_es="Calaca Menor", name_en="Lesser Calaca", num="1",
-         rules="HP 18. Attacks 6 dmg, twice per cycle.",
-         suit="silver_death_transparent.png"),
-    dict(art="alma_en_pena.png", name_es="Alma en Pena", name_en="Wandering Soul", num="2",
-         rules="HP 20. Weakens you (-1 dmg dealt), then attacks 7.",
-         suit="rainbow_special_transparent.png"),
-    dict(art="perro_xolo.png", name_es="Perro Xolo", name_en="Xolo Dog", num="4",
-         rules="HP 22. Attacks 5 twice, then heals self 5.",
-         suit="blue_ice_transparent.png"),
-    dict(art="guardian_de_ofrenda.png", name_es="Guardian de Ofrenda", name_en="Offering Guardian", num="5",
-         rules="HP 30. Blocks 8, then attacks 9 dmg twice.",
-         suit="gold_gem_transparent.png"),
-    dict(art="doble_calavera.png", name_es="Doble Calavera", name_en="Twin Skulls", num="8",
-         rules="HP 15+15. One attacks 5; the other blocks 6 or attacks 5.",
-         suit="red_heart_transparent.png"),
-    dict(art="la_catrina.png", name_es="La Catrina", name_en="La Catrina", num="B",
-         rules="HP 80 (Boss). Strike 12, then Weaken+6, then +4 dmg permanent.",
-         suit="special_marigold_transparent.png"),
-    dict(art="catrina_menor.png", name_es="Catrina Menor", name_en="Lesser Catrina", num="7",
-         rules="HP 28. Attack 6, then self-buff +2 dmg (permanent), then attacks (scales).",
-         suit="purple_royalty_transparent.png"),
+    dict(art="filo_de_hueso.png", name_es="Filo de Hueso", name_en="Bone Blade", cost="1",
+         rules="Deal 6 dmg.", suit="red_heart_transparent.png"),
+    dict(art="golpe_doble.png", name_es="Golpe Doble", name_en="Double Strike", cost="1",
+         rules="Deal 4 dmg twice.", suit="red_heart_transparent.png"),
+    dict(art="llama_de_copal.png", name_es="Llama de Copal", name_en="Copal Flame", cost="1",
+         rules="Deal 5 dmg, apply 2 Burn.", suit="special_candle_transparent.png"),
+    dict(art="bomba_de_cempasuchil.png", name_es="Bomba de Cempasuchil", name_en="Marigold Bomb", cost="2",
+         rules="Deal 10 dmg to all enemies.", suit="special_marigold_transparent.png"),
+    dict(art="corte_final.png", name_es="Corte Final", name_en="Final Cut", cost="2",
+         rules="Deal 8 dmg (16 if enemy below 50% HP).", suit="silver_death_transparent.png"),
+    dict(art="escarcha.png", name_es="Escarcha", name_en="Frostbite", cost="1",
+         rules="Deal 5 dmg, apply Freeze.", suit="blue_ice_transparent.png"),
+    dict(art="escudo_de_hueso.png", name_es="Escudo de Hueso", name_en="Bone Shield", cost="1",
+         rules="Gain 5 Block.", suit="blue_ice_transparent.png"),
+    dict(art="tumba_sellada.png", name_es="Tumba Sellada", name_en="Sealed Grave", cost="2",
+         rules="Gain 10 Block. Untargetable next turn.", suit="silver_death_transparent.png"),
+    dict(art="humo_de_copal.png", name_es="Humo de Copal", name_en="Copal Smoke", cost="1",
+         rules="Gain 4 Block, draw 1.", suit="special_candle_transparent.png"),
+    dict(art="ofrenda_de_oro.png", name_es="Ofrenda de Oro", name_en="Golden Offering", cost="1",
+         rules="Draw 2.", suit="green_money_transparent.png"),
+    dict(art="bendicion_real.png", name_es="Bendicion Real", name_en="Royal Blessing", cost="2",
+         rules="Gain 8 Block, remove 1 debuff.", suit="purple_royalty_transparent.png"),
+    dict(art="suerte_de_catrina.png", name_es="Suerte de Catrina", name_en="Catrina's Luck", cost="1",
+         rules="Random: 8 dmg, 8 Block, or draw 2.", suit="rainbow_special_transparent.png"),
+    dict(art="corona_de_espinas.png", name_es="Corona de Espinas", name_en="Crown of Thorns", cost="2",
+         rules="Reflect 3 dmg when hit.", suit="purple_royalty_transparent.png"),
+    dict(art="vela_eterna.png", name_es="Vela Eterna", name_en="Eternal Candle", cost="1",
+         rules="Apply 1 Burn to enemy each turn.", suit="special_candle_transparent.png"),
+    dict(art="corazon_de_rubi.png", name_es="Corazon de Rubi", name_en="Ruby Heart", cost="2",
+         rules="+1 energy per turn, rest of combat.", suit="red_heart_transparent.png"),
+    dict(art="diamante_de_hielo.png", name_es="Diamante de Hielo", name_en="Ice Diamond", cost="2",
+         rules="+3 Block at the start of each turn.", suit="blue_ice_transparent.png"),
+    dict(art="reliquia_dorada.png", name_es="Reliquia Dorada", name_en="Golden Relic", cost="2",
+         rules="Deal 5 dmg whenever you play a Power.", suit="gold_gem_transparent.png"),
+    dict(art="fuego_fatal.png", name_es="Fuego Fatal", name_en="Fatal Fire", cost="1",
+         rules="Doubles enemy Burn stacks at end of turn.", suit="silver_death_transparent.png"),
 ]
 
 
@@ -90,12 +110,6 @@ def load_font(size):
 
 
 def make_alpha_frame(frame_rgb, eligible_rects):
-    """Chroma-key to transparent, but ONLY within the given rectangles
-    (x0, y0, x1, y1). Everywhere else stays fully opaque regardless of
-    color. Without this restriction, dark GAPS between decorative elements
-    (which aren't part of any real content window) key transparent too,
-    letting oversized art bleed through wherever the frame happens to be
-    dark - which is what let art show up outside the intended window."""
     frame = frame_rgb.convert("RGBA")
     px = frame.load()
     w, h = frame.size
@@ -123,18 +137,10 @@ def geometry():
         art_band, text_band = bands[0], bands[1]
         name_band = (art_band[1], text_band[0])
     name_gap_full = name_band
-    # name_band above is a crude leftover gap, not a properly-detected panel -
-    # it actually contains THREE separate thin content stripes divided by the
-    # frame's own thin gold accent lines. Narrow it down to just the middle
-    # stripe, where the title text actually sits.
     name_band = (693, 729)
     ax, arx = panel_x_bounds(geom_ref, (art_band[0] + art_band[1]) // 2)
     tx, trx = panel_x_bounds(geom_ref, (text_band[0] + text_band[1]) // 2)
-    # the name plate has its own ornate bracket-shaped border, narrower than
-    # the art/text panels' plain line - measure it on its own.
     nx, nrx = panel_x_bounds(geom_ref, (name_band[0] + name_band[1]) // 2)
-    # the art panel's true top is right below the corner ornament (~y=95),
-    # not wherever find_black_panels first detects it.
     art_band = (95, art_band[1])
     return dict(ax=ax, arx=arx, tx=tx, trx=trx, nx=nx, nrx=nrx,
                 art_band=art_band, name_band=name_band, text_band=text_band,
@@ -145,9 +151,6 @@ MEDALLION_CX, MEDALLION_CY, SOCKET_R = 368, 960, 60
 
 
 def swap_medallion_skull(frame_alpha, suit_filename):
-    """The frame's medallion has Catrina's purple skull baked in. Clear
-    just the socket circle and drop in this card's own suit skull with a
-    soft shadow, same technique as the original medallion build."""
     frame_alpha = frame_alpha.copy()
     d = ImageDraw.Draw(frame_alpha)
     d.ellipse([MEDALLION_CX - SOCKET_R, MEDALLION_CY - SOCKET_R,
@@ -182,16 +185,15 @@ def build_card(card, geo, frame_alpha, w, h, lang="es"):
     win_cx = (ax + arx) // 2
     win_top, win_bottom = art_band[0], art_band[1]
     win_h = win_bottom - win_top
-    oversize = 0.85  # smaller than the window - centered, even black margin
+    oversize = 0.75  # icon art reads better a bit smaller than a bust portrait
     target_h = int(win_h * oversize)
-    scale = target_h / art.height  # source is square, so width scales the same
+    scale = target_h / art.height
     target_w = int(art.width * scale)
     art_resized = art.resize((target_w, target_h), Image.LANCZOS)
     paste_x = win_cx - target_w // 2
     paste_y = win_top + (win_h - target_h) // 2
     bg.paste(art_resized, (paste_x, paste_y))
 
-    # a clean dark plate behind the whole name gap for contrast
     plate = Image.new("RGBA", (nrx - nx, name_band[1] - name_band[0]), DARK_PLATE + (255,))
     bg_rgba = bg.convert("RGBA")
     bg_rgba.alpha_composite(plate, (nx, name_band[0]))
@@ -202,7 +204,7 @@ def build_card(card, geo, frame_alpha, w, h, lang="es"):
     mock = mock.convert("RGB")
     d = ImageDraw.Draw(mock)
 
-    font_name = load_font(32)
+    font_name = load_font(30)
     font_text = load_font(23)
     font_cost = load_font(26)
 
@@ -234,7 +236,7 @@ def build_card(card, geo, frame_alpha, w, h, lang="es"):
     gem_r = 40
     d.ellipse([cost_cx - gem_r, cost_cy - gem_r, cost_cx + gem_r, cost_cy + gem_r],
               fill=(220, 220, 225), outline=(180, 140, 30), width=5)
-    cost_text = card["num"]
+    cost_text = card["cost"]
     bbox = d.textbbox((0, 0), cost_text, font=font_cost)
     cw, ch = bbox[2] - bbox[0], bbox[3] - bbox[1]
     d.text((cost_cx - cw // 2, cost_cy - ch // 2 - bbox[1]), cost_text, font=font_cost, fill=(20, 15, 5))
@@ -250,11 +252,6 @@ def main():
     frame_rgb = Image.open(FRAME_PATH).convert("RGB")
     w, h = frame_rgb.size
     geo = geometry()
-    # the art panel's right edge (arx, ~578) has a residual strip of the
-    # frame's own un-keyed gradient between it and the outer border - extend
-    # the eligible zone to x=600 to clear it without letting art bleed
-    # outside the window (this zone is still well within the black backdrop,
-    # never reached by the centered/scaled-down character art).
     eligible_rects = [
         (geo["ax"], geo["art_band"][0], 600, geo["art_band"][1]),
         (geo["nx"], geo["name_gap_full"][0], geo["nrx"], geo["name_gap_full"][1]),

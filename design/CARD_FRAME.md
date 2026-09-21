@@ -555,6 +555,47 @@ Canonical: `design/cards/*.png` (all 7), `design/cards_source_clean/*.png`
 (the cleaned source art, reusable for any future rebuild),
 `build_all_enemy_cards.py` is the reference script for the technique.
 
+## Round 18: all 18 player cards
+
+Generated icon/object art for the actual 18 deckbuilder cards from
+`CARDS.md` (not character portraits this time - a glowing bone blade,
+a copal incense burner, a marigold bomb bursting, etc.), one ComfyUI
+batch, same style clause pattern as every other art pass. All 18 landed
+clean on the first generation, no rejects.
+
+Built with `build_player_cards.py` (same technique as the enemy script,
+`oversize` dropped to 0.75 since icon art reads better a bit smaller
+than a bust portrait). Cost gem now shows real card cost instead of a
+placeholder number. Suit badges follow CARDS.md's mapping exactly,
+except Sealed Grave and Copal Smoke, which don't have a skull-shaped
+medallion icon (they're differently-shaped Blocker assets in Calaverita,
+not skulls) - those two reuse the nearest thematic skull (Silver/Death,
+Candle) rather than going without a badge.
+
+Canonical: `design/cards/*.png` (all 25 - 7 enemies + 18 player cards),
+`design/build_player_cards.py`. Enemy art source lives in
+`baraja_enemies_v3`; player-card art lives in ArtEngine's
+`baraja_player_cards` batch and hasn't been copied into the repo yet.
+
+## Round 19: bilingual cards (English/Español toggle, per the original
+localization requirement)
+
+Both build scripts now take a `name_es`/`name_en` pair per card instead
+of a single name, and loop over both languages, writing to `cards/`
+(Spanish, the default) and `cards_en/` (English) respectively. Rules
+text didn't need translating - it was already written in English in
+both scripts from the start, only the title needed a language swap.
+Per the original localization note, a card prints whichever language is
+active, never both at once - these are two full separate renders per
+card, not one card with both languages crammed on it.
+
+Enemy English names come straight from ENEMIES.md's own ES/EN pairs.
+Player card English names come from CARDS.md's own table. La Catrina
+keeps her name unchanged in English (proper noun).
+
+Canonical: `design/cards/*.png` (Spanish, 25 files) and
+`design/cards_en/*.png` (English, 25 files) are both locked outputs now.
+
 **Final cleanup:** the working background fill was `(12, 8, 16)`, a
 close-but-not-exact approximation of black, fine for a mockup but not
 for the production template. Changed to true `(0, 0, 0)` everywhere it's

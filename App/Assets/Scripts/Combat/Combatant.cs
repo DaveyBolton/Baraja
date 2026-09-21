@@ -25,7 +25,7 @@ namespace Baraja.Combat
         // Outgoing damage from this combatant, after Weaken and a Freeze charge.
         public int ModifyOutgoingDamage(int rawDamage)
         {
-            int dmg = rawDamage - Status.WeakenDamageReduction;
+            int dmg = rawDamage - Status.ConsumeWeakenReduction();
             if (dmg < 0) dmg = 0;
             dmg = Status.ApplyFreezeToOutgoingDamage(dmg);
             return dmg;

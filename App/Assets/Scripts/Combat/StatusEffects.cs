@@ -2,9 +2,11 @@ using System.Collections.Generic;
 
 namespace Baraja.Combat
 {
-    // Stack count per status a combatant is carrying. Burn/Weaken accumulate;
-    // Freeze/Untargetable are single-use flags (stack count 0 or 1) per their
-    // definitions in CombatEnums.cs.
+    // Stack count per status a combatant is carrying. Burn accumulates and
+    // ticks down over time; Weaken/Freeze/Untargetable are all single-use -
+    // whatever amount is stored gets consumed in full the next time it
+    // matters, then clears, rather than permanently reducing every future
+    // hit forever.
     public class StatusEffects
     {
         private readonly Dictionary<StatusType, int> _stacks = new Dictionary<StatusType, int>();
@@ -46,6 +48,16 @@ namespace Baraja.Combat
             return damage / 2;
         }
 
-        public int WeakenDamageReduction => Get(StatusType.Weaken);
+        // Consumes the full Weaken stack against one outgoing damage instance,
+        // then clears it - repeated applications (e.g. La Catrina's Mirada de
+        // Juicio every 3-turn cycle) accumulate until the next hit, but that
+        // hit clears all of it rather than permanently blunting every hit
+        // afterward too.
+        public int ConsumeWeakenReduction()
+        {
+            int amount = Get(StatusType.Weaken);
+            if (amount > 0) Clear(StatusType.Weaken);
+            return amount;
+        }
     }
 }

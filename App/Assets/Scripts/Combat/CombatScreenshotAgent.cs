@@ -38,6 +38,12 @@ namespace Baraja.Combat
             System.IO.Directory.CreateDirectory(_shotDir);
         }
 
+        // -srslow widens the gap between steps for a demo capture meant to be
+        // looked at frame by frame, rather than the fast default used to just
+        // verify the loop resolves correctly.
+        private static readonly bool Slow =
+            System.Array.IndexOf(System.Environment.GetCommandLineArgs(), "-srslow") >= 0;
+
         private void Update()
         {
             if (_manager == null)
@@ -49,7 +55,8 @@ namespace Baraja.Combat
             }
 
             _timer += Time.unscaledDeltaTime;
-            if (_timer < 0.6f) return;
+            float interval = Slow ? 1.8f : 0.6f;
+            if (_timer < interval) return;
             _timer = 0f;
 
             if (!_ended) AutoPlayStep();

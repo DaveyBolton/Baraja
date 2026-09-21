@@ -49,21 +49,21 @@ namespace Baraja.Store
             },
             new StoreItem
             {
-                Id = "cardback_rainbow", Kind = StoreItemKind.CardBackSkin, PriceDisplay = "150 Pétalos / Petals", PetalCost = 150,
+                Id = "cardback_rainbow", Kind = StoreItemKind.CardBackSkin, PriceEs = "150 Pétalos", PriceEn = "150 Petals", PetalCost = 150,
                 NameEs = "Reverso Catrina Arcoíris", NameEn = "Rainbow Catrina Back",
                 DescriptionEs = "Reverso de carta cosmético.",
                 DescriptionEn = "Cosmetic card back.",
             },
             new StoreItem
             {
-                Id = "cardback_gold", Kind = StoreItemKind.CardBackSkin, PriceDisplay = "150 Pétalos / Petals", PetalCost = 150,
+                Id = "cardback_gold", Kind = StoreItemKind.CardBackSkin, PriceEs = "150 Pétalos", PriceEn = "150 Petals", PetalCost = 150,
                 NameEs = "Reverso Reliquia Dorada", NameEn = "Golden Relic Back",
                 DescriptionEs = "Reverso de carta cosmético.",
                 DescriptionEn = "Cosmetic card back.",
             },
             new StoreItem
             {
-                Id = "cardback_silver", Kind = StoreItemKind.CardBackSkin, PriceDisplay = "150 Pétalos / Petals", PetalCost = 150,
+                Id = "cardback_silver", Kind = StoreItemKind.CardBackSkin, PriceEs = "150 Pétalos", PriceEn = "150 Petals", PetalCost = 150,
                 NameEs = "Reverso Plata Mortal", NameEn = "Silver Death Back",
                 DescriptionEs = "Reverso de carta cosmético.",
                 DescriptionEn = "Cosmetic card back.",

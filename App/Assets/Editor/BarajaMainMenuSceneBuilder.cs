@@ -19,7 +19,7 @@ public static class BarajaMainMenuSceneBuilder
     // PIL against CinzelDecorative-Bold at 36pt: 269px text width, so 460px
     // leaves generous padding inside the gem on every side.
     const float StandardButtonWidth = 460f;
-    const int StandardButtonFontSize = 36;
+    const int StandardButtonFontSize = 40;
 
     public static void Build()
     {
@@ -58,21 +58,20 @@ public static class BarajaMainMenuSceneBuilder
         float navButtonHeight = StandardButtonWidth / BarajaGemButtons.Aspect;
         float navSpacing = navButtonHeight + 24f;
 
+        // Three nav buttons now - How to Play moved into the combat scene's
+        // tutorial banner (CombatTutorialHint), read in context next to the
+        // board it describes instead of a menu-only parchment overlay.
         Button playBtn = MakeButton(canvasGO.transform, "PlayButton", StandardButtonWidth, "Play", StandardButtonFontSize, GemColor.Gold);
         CenterAnchor(playBtn.GetComponent<RectTransform>());
-        playBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, navSpacing * 1.5f);
-
-        Button howToPlayBtn = MakeButton(canvasGO.transform, "HowToPlayButton", StandardButtonWidth, "How to Play", StandardButtonFontSize, GemColor.Blue);
-        CenterAnchor(howToPlayBtn.GetComponent<RectTransform>());
-        howToPlayBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, navSpacing * 0.5f);
+        playBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, navSpacing);
 
         Button optionsBtn = MakeButton(canvasGO.transform, "OptionsButton", StandardButtonWidth, "Options", StandardButtonFontSize, GemColor.Purple);
         CenterAnchor(optionsBtn.GetComponent<RectTransform>());
-        optionsBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, -navSpacing * 0.5f);
+        optionsBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, 0);
 
         Button storeBtn = MakeButton(canvasGO.transform, "StoreButton", StandardButtonWidth, "Store", StandardButtonFontSize, GemColor.Green);
         CenterAnchor(storeBtn.GetComponent<RectTransform>());
-        storeBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, -navSpacing * 1.5f);
+        storeBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, -navSpacing);
 
         // --- Options overlay ---
         GameObject optionsPanel = MakeOverlayPanel(canvasGO.transform, "OptionsPanel");
@@ -87,13 +86,13 @@ public static class BarajaMainMenuSceneBuilder
         // AnchorTop + MiddleLeft alignment previously put the label's whole
         // 800-wide box centered on screen, so left-aligned text rendered
         // starting near x=-220 and never appeared on screen at all.
-        Text fxLabel = MakeText(optionsPanel.transform, "FxLabel", new Vector2(180, -260), TextAnchor.MiddleLeft, 34);
+        Text fxLabel = MakeText(optionsPanel.transform, "FxLabel", new Vector2(180, -260), TextAnchor.MiddleLeft, 42);
         AnchorTopLeft(fxLabel.rectTransform);
         fxLabel.rectTransform.sizeDelta = new Vector2(400, 50);
         fxLabel.text = "FX Volume";
         Slider fxSlider = MakeSlider(optionsPanel.transform, "FxSlider", new Vector2(0, -330));
 
-        Text musicLabel = MakeText(optionsPanel.transform, "MusicLabel", new Vector2(180, -420), TextAnchor.MiddleLeft, 34);
+        Text musicLabel = MakeText(optionsPanel.transform, "MusicLabel", new Vector2(180, -420), TextAnchor.MiddleLeft, 42);
         AnchorTopLeft(musicLabel.rectTransform);
         musicLabel.rectTransform.sizeDelta = new Vector2(400, 50);
         musicLabel.text = "Music Volume";
@@ -112,42 +111,6 @@ public static class BarajaMainMenuSceneBuilder
         Button optionsCloseBtn = MakeButton(optionsPanel.transform, "OptionsCloseButton", StandardButtonWidth, "Close", StandardButtonFontSize, GemColor.Silver);
         AnchorTop(optionsCloseBtn.GetComponent<RectTransform>());
         optionsCloseBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, -590 - panelButtonHeight - 30f);
-
-        // --- Tutorial overlay ---
-        GameObject tutorialPanel = MakeOverlayPanel(canvasGO.transform, "TutorialPanel");
-        Text tutorialTitle = MakeTitleText(tutorialPanel.transform, "TutorialTitle", new Vector2(0, -100), TextAnchor.MiddleCenter, 50);
-        AnchorTop(tutorialTitle.rectTransform);
-        tutorialTitle.rectTransform.sizeDelta = new Vector2(900, 80);
-
-        Text tutorialBody = MakeText(tutorialPanel.transform, "TutorialBody", new Vector2(0, -260), TextAnchor.UpperCenter, 34);
-        AnchorTop(tutorialBody.rectTransform);
-        tutorialBody.rectTransform.sizeDelta = new Vector2(900, 700);
-
-        Text tutorialPageIndex = MakeText(tutorialPanel.transform, "TutorialPageIndex", new Vector2(0, -1080), TextAnchor.MiddleCenter, 28);
-        AnchorTop(tutorialPageIndex.rectTransform);
-        tutorialPageIndex.color = new Color(1f, 1f, 1f, 0.6f);
-
-        Button tutorialBackBtn = MakeButton(tutorialPanel.transform, "TutorialBackButton", StandardButtonWidth, "< Back", StandardButtonFontSize, GemColor.Silver);
-        tutorialBackBtn.GetComponent<RectTransform>().anchorMin = new Vector2(0f, 0f);
-        tutorialBackBtn.GetComponent<RectTransform>().anchorMax = new Vector2(0f, 0f);
-        tutorialBackBtn.GetComponent<RectTransform>().pivot = new Vector2(0f, 0f);
-        tutorialBackBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(40, 260);
-
-        Button tutorialNextBtn = MakeButton(tutorialPanel.transform, "TutorialNextButton", StandardButtonWidth, "Next >", StandardButtonFontSize, GemColor.Blue);
-        tutorialNextBtn.GetComponent<RectTransform>().anchorMin = new Vector2(1f, 0f);
-        tutorialNextBtn.GetComponent<RectTransform>().anchorMax = new Vector2(1f, 0f);
-        tutorialNextBtn.GetComponent<RectTransform>().pivot = new Vector2(1f, 0f);
-        tutorialNextBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(-40, 260);
-
-        // Below Back/Next (bottom-anchored at y=260, 207px tall), not
-        // center-anchored - center-anchoring mixed a second coordinate
-        // system into this stack and the two overlapped once the buttons
-        // grew from ~90px tall to 207px.
-        Button tutorialCloseBtn = MakeButton(tutorialPanel.transform, "TutorialCloseButton", StandardButtonWidth, "Close", StandardButtonFontSize, GemColor.Silver);
-        tutorialCloseBtn.GetComponent<RectTransform>().anchorMin = new Vector2(0.5f, 0f);
-        tutorialCloseBtn.GetComponent<RectTransform>().anchorMax = new Vector2(0.5f, 0f);
-        tutorialCloseBtn.GetComponent<RectTransform>().pivot = new Vector2(0.5f, 0f);
-        tutorialCloseBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, 30);
 
         // --- Store overlay ---
         GameObject storePanel = MakeOverlayPanel(canvasGO.transform, "StorePanel");
@@ -175,34 +138,24 @@ public static class BarajaMainMenuSceneBuilder
         GameObject storeRowPrefab = MakeStoreRowPrefab(canvasGO.transform);
 
         optionsPanel.SetActive(false);
-        tutorialPanel.SetActive(false);
         storePanel.SetActive(false);
 
         // --- Wiring ---
         MainMenuUI ui = canvasGO.AddComponent<MainMenuUI>();
         ui.OptionsPanel = optionsPanel;
         ui.StorePanel = storePanel;
-        ui.TutorialPanel = tutorialPanel;
 
         ui.PlayButton = playBtn;
-        ui.HowToPlayButton = howToPlayBtn;
         ui.OptionsButton = optionsBtn;
         ui.StoreButton = storeBtn;
 
         ui.OptionsCloseButton = optionsCloseBtn;
-        ui.TutorialCloseButton = tutorialCloseBtn;
         ui.StoreCloseButton = storeCloseBtn;
 
         ui.FxSlider = fxSlider;
         ui.MusicSlider = musicSlider;
         ui.LanguageButton = langBtn;
         ui.LanguageButtonLabel = langLabel;
-
-        ui.TutorialTitleText = tutorialTitle;
-        ui.TutorialBodyText = tutorialBody;
-        ui.TutorialPageIndexText = tutorialPageIndex;
-        ui.TutorialNextButton = tutorialNextBtn;
-        ui.TutorialBackButton = tutorialBackBtn;
 
         ui.StoreListContainer = storeScrollContent.transform;
         ui.StoreRowPrefab = storeRowPrefab;
@@ -287,49 +240,92 @@ public static class BarajaMainMenuSceneBuilder
     }
 
     // Inactive template instantiated per-item by MainMenuUI.RefreshStoreList.
+    // Backed by a carved-stone tablet texture instead of the previous
+    // barely-visible flat tint. The stone's own natural aspect is ~4.2:1,
+    // not the 6:1 a plain row would've used - forcing that would stretch
+    // its facets, so the row is sized to the texture instead of the other
+    // way around (960x229, not 960x160).
     static GameObject MakeStoreRowPrefab(Transform parent)
     {
+        const float rowWidth = 960f;
+        float rowHeight = rowWidth * 229f / 960f; // panel_stone.png's own measured aspect
+
         GameObject go = new GameObject("StoreRowPrefab");
         go.transform.SetParent(parent, false);
         RectTransform rt = go.AddComponent<RectTransform>();
         rt.anchorMin = new Vector2(0.5f, 1f);
         rt.anchorMax = new Vector2(0.5f, 1f);
         rt.pivot = new Vector2(0.5f, 1f);
-        rt.sizeDelta = new Vector2(960, 160);
+        rt.sizeDelta = new Vector2(rowWidth, rowHeight);
         LayoutElement layoutElement = go.AddComponent<LayoutElement>();
-        layoutElement.preferredHeight = 160;
-        layoutElement.preferredWidth = 960;
-        Image bg = go.AddComponent<Image>();
-        bg.color = new Color(1f, 1f, 1f, 0.06f);
+        layoutElement.preferredHeight = rowHeight;
+        layoutElement.preferredWidth = rowWidth;
+        RawImage bg = go.AddComponent<RawImage>();
+        bg.texture = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Art/Panels/panel_stone.png");
 
-        Text nameText = MakeTitleText(go.transform, "NameText", Vector2.zero, TextAnchor.UpperLeft, 30);
-        nameText.rectTransform.anchorMin = new Vector2(0f, 1f);
-        nameText.rectTransform.anchorMax = new Vector2(0f, 1f);
-        nameText.rectTransform.pivot = new Vector2(0f, 1f);
-        nameText.rectTransform.anchoredPosition = new Vector2(24, -14);
-        nameText.rectTransform.sizeDelta = new Vector2(620, 40);
+        // Text is dark now (was white/amber, tuned for the old near-black
+        // tint) since it has to read against light grey stone instead.
+        // Name+Desc are vertically centered as a block on the row's own
+        // center (matching the Buy button's centering) rather than pinned
+        // near the top, which left the bottom ~40% of the slab as dead
+        // empty space and read as unbalanced.
+        Color darkText = new Color(0.16f, 0.15f, 0.15f);
 
-        Text descText = MakeText(go.transform, "DescText", Vector2.zero, TextAnchor.UpperLeft, 22);
-        descText.rectTransform.anchorMin = new Vector2(0f, 1f);
-        descText.rectTransform.anchorMax = new Vector2(0f, 1f);
-        descText.rectTransform.pivot = new Vector2(0f, 1f);
-        descText.rectTransform.anchoredPosition = new Vector2(24, -60);
-        descText.rectTransform.sizeDelta = new Vector2(620, 80);
-        descText.color = new Color(1f, 1f, 1f, 0.75f);
+        // Name/Desc get their own column (x:50-460) strictly separate from
+        // the Price column (x:470-660) and Buy (x:680-910) - Best Fit auto-
+        // shrinks only the names/descriptions long enough to need it
+        // ("Reverso Catrina Arcoíris" etc.) instead of one hand-picked size
+        // that either overflows on the longest string or is needlessly
+        // small on every shorter one.
+        Text nameText = MakeTitleText(go.transform, "NameText", Vector2.zero, TextAnchor.MiddleLeft, 38);
+        nameText.color = darkText;
+        nameText.horizontalOverflow = HorizontalWrapMode.Overflow; // force single line so Best Fit shrinks the font instead of wrapping to a second line
+        nameText.resizeTextForBestFit = true;
+        nameText.resizeTextMinSize = 20;
+        nameText.resizeTextMaxSize = 38;
+        nameText.rectTransform.anchorMin = new Vector2(0f, 0.5f);
+        nameText.rectTransform.anchorMax = new Vector2(0f, 0.5f);
+        nameText.rectTransform.pivot = new Vector2(0f, 0.5f);
+        nameText.rectTransform.anchoredPosition = new Vector2(50, 28);
+        nameText.rectTransform.sizeDelta = new Vector2(410, 50);
 
-        Text priceText = MakeText(go.transform, "PriceText", Vector2.zero, TextAnchor.UpperRight, 24);
-        priceText.rectTransform.anchorMin = new Vector2(1f, 1f);
-        priceText.rectTransform.anchorMax = new Vector2(1f, 1f);
-        priceText.rectTransform.pivot = new Vector2(1f, 1f);
-        priceText.rectTransform.anchoredPosition = new Vector2(-24, -14);
-        priceText.rectTransform.sizeDelta = new Vector2(260, 34);
-        priceText.color = new Color(1f, 0.85f, 0.4f);
+        Text descText = MakeText(go.transform, "DescText", Vector2.zero, TextAnchor.MiddleLeft, 34);
+        descText.color = new Color(0.3f, 0.28f, 0.28f);
+        descText.horizontalOverflow = HorizontalWrapMode.Overflow;
+        descText.resizeTextForBestFit = true;
+        descText.resizeTextMinSize = 18;
+        descText.resizeTextMaxSize = 34;
+        descText.rectTransform.anchorMin = new Vector2(0f, 0.5f);
+        descText.rectTransform.anchorMax = new Vector2(0f, 0.5f);
+        descText.rectTransform.pivot = new Vector2(0f, 0.5f);
+        descText.rectTransform.anchoredPosition = new Vector2(50, -32);
+        descText.rectTransform.sizeDelta = new Vector2(410, 42);
 
-        Button buyBtn = MakeButton(go.transform, "BuyButton", 180f, "Buy", 22, GemColor.Gold);
-        buyBtn.GetComponent<RectTransform>().anchorMin = new Vector2(1f, 1f);
-        buyBtn.GetComponent<RectTransform>().anchorMax = new Vector2(1f, 1f);
-        buyBtn.GetComponent<RectTransform>().pivot = new Vector2(1f, 1f);
-        buyBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(-24, -60);
+        // Price sits immediately left of the Buy gem, paired with it on the
+        // same vertical center - the old above-the-gem placement read as
+        // "lost" (too small/low-contrast against the stone, easy to miss
+        // next to the much bigger gem). White instead of amber for contrast
+        // against the mid-grey stone.
+        Text priceText = MakeText(go.transform, "PriceText", Vector2.zero, TextAnchor.MiddleRight, 30);
+        priceText.horizontalOverflow = HorizontalWrapMode.Overflow;
+        priceText.resizeTextForBestFit = true;
+        priceText.resizeTextMinSize = 18;
+        priceText.resizeTextMaxSize = 30;
+        priceText.rectTransform.anchorMin = new Vector2(1f, 0.5f);
+        priceText.rectTransform.anchorMax = new Vector2(1f, 0.5f);
+        priceText.rectTransform.pivot = new Vector2(1f, 0.5f);
+        priceText.rectTransform.anchoredPosition = new Vector2(-300, 0);
+        priceText.rectTransform.sizeDelta = new Vector2(190, 40);
+        priceText.color = Color.white;
+
+        // Diamond white, bigger, and centered on the row's own vertical
+        // middle (not paired below the price text) - a real "buy" action
+        // reads better sitting on its own than sharing a stack with price.
+        Button buyBtn = MakeButton(go.transform, "BuyButton", 230f, "Buy", 26, GemColor.Silver);
+        buyBtn.GetComponent<RectTransform>().anchorMin = new Vector2(1f, 0.5f);
+        buyBtn.GetComponent<RectTransform>().anchorMax = new Vector2(1f, 0.5f);
+        buyBtn.GetComponent<RectTransform>().pivot = new Vector2(1f, 0.5f);
+        buyBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(-50, 0);
 
         go.SetActive(false);
         return go;

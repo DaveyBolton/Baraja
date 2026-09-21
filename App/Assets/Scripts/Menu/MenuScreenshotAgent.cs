@@ -56,19 +56,6 @@ namespace Baraja.Menu
             Shot("title");
             yield return new WaitForSeconds(0.4f);
 
-            ui.HowToPlayButton.onClick.Invoke();
-            yield return new WaitForSeconds(0.2f);
-            Shot("tutorial_page1");
-            yield return new WaitForSeconds(0.4f);
-
-            ui.TutorialNextButton.onClick.Invoke();
-            yield return new WaitForSeconds(0.2f);
-            Shot("tutorial_page2");
-            yield return new WaitForSeconds(0.4f);
-
-            ui.TutorialCloseButton.onClick.Invoke();
-            yield return new WaitForSeconds(0.1f);
-
             ui.OptionsButton.onClick.Invoke();
             yield return new WaitForSeconds(0.2f);
             Shot("options_spanish");

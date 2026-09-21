@@ -49,6 +49,7 @@ namespace Baraja.Combat
             // scene was built.
             Spanish = GameSettings.Spanish;
             Manager.Spanish = Spanish;
+            EndTurnButton.GetComponentInChildren<Text>().text = Spanish ? "Fin de Turno" : "End Turn";
 
             Manager.OnStateChanged += Refresh;
             Manager.OnLog += OnLog;

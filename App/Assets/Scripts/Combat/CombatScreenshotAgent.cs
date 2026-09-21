@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -27,6 +28,8 @@ namespace Baraja.Combat
 
         private string _shotDir;
 
+        private bool _tutorialHandled;
+
         private void Start()
         {
             // Absolute path anchored to the build folder (one level up from
@@ -36,6 +39,31 @@ namespace Baraja.Combat
             _shotDir = System.IO.Path.Combine(
                 System.IO.Directory.GetParent(Application.dataPath).FullName, "Shots");
             System.IO.Directory.CreateDirectory(_shotDir);
+            StartCoroutine(HandleTutorialThenPlay());
+        }
+
+        // The first-time tutorial banner (CombatTutorialHint) blocks the board
+        // until dismissed - click through a couple of pages to verify it
+        // renders, then fast-forward the rest so the timed auto-play loop
+        // below sees a clean board from turn 1 instead of several turns
+        // silently passing behind a banner nobody photographed.
+        private IEnumerator HandleTutorialThenPlay()
+        {
+            var hint = FindObjectOfType<CombatTutorialHint>();
+            if (hint != null && hint.Panel.activeSelf)
+            {
+                yield return new WaitForSeconds(0.3f);
+                ScreenCapture.CaptureScreenshot(System.IO.Path.Combine(_shotDir, "combat_tutorial_page1.png"));
+                yield return new WaitForSeconds(0.3f);
+
+                hint.NextButton.onClick.Invoke();
+                yield return new WaitForSeconds(0.2f);
+                ScreenCapture.CaptureScreenshot(System.IO.Path.Combine(_shotDir, "combat_tutorial_page2.png"));
+                yield return new WaitForSeconds(0.3f);
+
+                while (hint.Panel.activeSelf) hint.NextButton.onClick.Invoke();
+            }
+            _tutorialHandled = true;
         }
 
         // -srslow widens the gap between steps for a demo capture meant to be
@@ -46,6 +74,8 @@ namespace Baraja.Combat
 
         private void Update()
         {
+            if (!_tutorialHandled) return;
+
             if (_manager == null)
             {
                 _manager = FindObjectOfType<CombatManager>();

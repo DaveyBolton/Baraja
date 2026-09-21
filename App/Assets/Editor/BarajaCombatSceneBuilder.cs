@@ -16,7 +16,7 @@ public static class BarajaCombatSceneBuilder
     // label anywhere in the game ("How to Play", on the main menu) at a
     // legible size - see BarajaMainMenuSceneBuilder for the measurement.
     const float StandardButtonWidth = 460f;
-    const int StandardButtonFontSize = 36;
+    const int StandardButtonFontSize = 40;
 
     public static void Build()
     {
@@ -86,7 +86,7 @@ public static class BarajaCombatSceneBuilder
         // with Upper alignment so overflow grows downward into that band, rather
         // than bottom-anchored Overflow, which stacks new lines back over old
         // ones once content exceeds the rect (the cause of the overlap Dave saw).
-        Text logText = MakeText(canvasGO.transform, "LogText", new Vector2(0, -1000), TextAnchor.UpperCenter, 34);
+        Text logText = MakeText(canvasGO.transform, "LogText", new Vector2(0, -1000), TextAnchor.UpperCenter, 44);
         logText.rectTransform.anchorMin = new Vector2(0.5f, 1f);
         logText.rectTransform.anchorMax = new Vector2(0.5f, 1f);
         logText.rectTransform.pivot = new Vector2(0.5f, 1f);
@@ -104,17 +104,25 @@ public static class BarajaCombatSceneBuilder
         endTurnRT.pivot = new Vector2(1f, 1f);
         endTurnRT.anchoredPosition = new Vector2(-30, -30);
 
-        // --- Hand, bottom - a horizontally scrolling row so cards can be
-        // drawn big enough to actually read (3 fit on screen at once; swipe
-        // for the rest) instead of shrinking every card to fit a fixed row. ---
+        // --- Hand, bottom - a horizontally scrolling coverflow (HandCarousel):
+        // the card nearest the viewport's center scales up as the focused
+        // card, others shrink toward the edges. Container is taller than a
+        // native 480-tall card (600) to leave room for the focused card's
+        // scaled-up height (480 * 1.15 max scale = 552) without the
+        // viewport's own mask clipping its top/bottom. ---
         GameObject handContent = MakeHorizontalScrollList(canvasGO.transform, "HandScroll",
-            new Vector2(0, 10), new Vector2(1080, 500));
+            new Vector2(0, 10), new Vector2(1080, 600));
 
         GameObject cardButtonPrefab = MakeCardButtonPrefab(canvasGO.transform);
 
-        // --- First-time tutorial banner, between the top bar and the enemy row ---
-        float hintButtonHeight = StandardButtonWidth / BarajaGemButtons.Aspect;
-        float hintPanelHeight = 20f + 150f + 20f + hintButtonHeight + 20f; // pad + body + gap + button + pad
+        // --- First-time tutorial, shown as a click-through banner over the
+        // actual board (the full 8-page TutorialPages content, not just a
+        // single message) - reading it here, next to the thing it's
+        // describing, beats the old main-menu-only parchment overlay that
+        // was divorced from any board to look at.
+        const float hintButtonWidth = 400f;
+        float hintButtonHeight = hintButtonWidth / BarajaGemButtons.Aspect;
+        float hintPanelHeight = 20f + 56f + 14f + 220f + 14f + 40f + 14f + hintButtonHeight + 20f;
         GameObject hintPanel = new GameObject("TutorialHintPanel");
         hintPanel.transform.SetParent(canvasGO.transform, false);
         Image hintBg = hintPanel.AddComponent<Image>();
@@ -126,23 +134,48 @@ public static class BarajaCombatSceneBuilder
         hintRT.anchoredPosition = new Vector2(0, -250); // clears End Turn's bottom edge at ~237px
         hintRT.sizeDelta = new Vector2(980, hintPanelHeight);
 
-        Text hintBody = MakeText(hintPanel.transform, "HintBodyText", new Vector2(0, -20), TextAnchor.UpperCenter, 36);
+        Text hintTitle = MakeTitleText(hintPanel.transform, "HintTitleText", new Vector2(0, -20), TextAnchor.UpperCenter, 44);
+        hintTitle.rectTransform.anchorMin = new Vector2(0.5f, 1f);
+        hintTitle.rectTransform.anchorMax = new Vector2(0.5f, 1f);
+        hintTitle.rectTransform.pivot = new Vector2(0.5f, 1f);
+        hintTitle.rectTransform.sizeDelta = new Vector2(900, 56);
+
+        Text hintBody = MakeText(hintPanel.transform, "HintBodyText", new Vector2(0, -90), TextAnchor.UpperCenter, 36);
         hintBody.rectTransform.anchorMin = new Vector2(0.5f, 1f);
         hintBody.rectTransform.anchorMax = new Vector2(0.5f, 1f);
         hintBody.rectTransform.pivot = new Vector2(0.5f, 1f);
-        hintBody.rectTransform.sizeDelta = new Vector2(900, 150);
+        hintBody.rectTransform.sizeDelta = new Vector2(900, 220);
 
-        Button hintGotIt = MakeButton(hintPanel.transform, "GotItButton", StandardButtonWidth, "Got it", StandardButtonFontSize, GemColor.Ruby);
-        RectTransform hintBtnRT = hintGotIt.GetComponent<RectTransform>();
-        hintBtnRT.anchorMin = new Vector2(0.5f, 0f);
-        hintBtnRT.anchorMax = new Vector2(0.5f, 0f);
-        hintBtnRT.pivot = new Vector2(0.5f, 0f);
-        hintBtnRT.anchoredPosition = new Vector2(0, 20);
+        Text hintPageIndex = MakeText(hintPanel.transform, "HintPageIndexText", new Vector2(0, -338), TextAnchor.UpperCenter, 28);
+        hintPageIndex.rectTransform.anchorMin = new Vector2(0.5f, 1f);
+        hintPageIndex.rectTransform.anchorMax = new Vector2(0.5f, 1f);
+        hintPageIndex.rectTransform.pivot = new Vector2(0.5f, 1f);
+        hintPageIndex.rectTransform.sizeDelta = new Vector2(900, 40);
+        hintPageIndex.color = new Color(1f, 1f, 1f, 0.6f);
+
+        Button hintBack = MakeButton(hintPanel.transform, "HintBackButton", hintButtonWidth, "< Back", StandardButtonFontSize, GemColor.Silver);
+        RectTransform hintBackRT = hintBack.GetComponent<RectTransform>();
+        hintBackRT.anchorMin = new Vector2(0f, 0f);
+        hintBackRT.anchorMax = new Vector2(0f, 0f);
+        hintBackRT.pivot = new Vector2(0f, 0f);
+        hintBackRT.anchoredPosition = new Vector2(20, 20);
+
+        Button hintNext = MakeButton(hintPanel.transform, "HintNextButton", hintButtonWidth, "Next >", StandardButtonFontSize, GemColor.Ruby);
+        RectTransform hintNextRT = hintNext.GetComponent<RectTransform>();
+        hintNextRT.anchorMin = new Vector2(1f, 0f);
+        hintNextRT.anchorMax = new Vector2(1f, 0f);
+        hintNextRT.pivot = new Vector2(1f, 0f);
+        hintNextRT.anchoredPosition = new Vector2(-20, 20);
 
         CombatTutorialHint hint = canvasGO.AddComponent<CombatTutorialHint>();
         hint.Panel = hintPanel;
+        hint.TitleText = hintTitle;
         hint.BodyText = hintBody;
-        hint.GotItButton = hintGotIt;
+        hint.PageIndexText = hintPageIndex;
+        hint.BackButton = hintBack;
+        hint.BackButtonLabel = hintBack.GetComponentInChildren<Text>();
+        hint.NextButton = hintNext;
+        hint.NextButtonLabel = hintNext.GetComponentInChildren<Text>();
 
         // --- Manager + UI wiring ---
         GameObject managerGO = new GameObject("CombatManager");
@@ -228,22 +261,22 @@ public static class BarajaCombatSceneBuilder
         // margin, or the text visually crowds the ring/skull below it.
         float textBandTop = TextTop * frameH;
         float medallionTopY = MedallionTop * frameH;
-        const float topPad = 4f, safetyMargin = 10f, lineH = 18f;
-        // Solved, not guessed: at frameH=480.4 the text band starts at
-        // 364.5px and the medallion at 415.75px, leaving 51.25px total.
-        // topPad(4) + 2*lineH(36) = 40px used, ending at 404.5px - an
-        // 11px real visual gap before the ring. Shrinking further to chase
-        // a bigger gap starts making the HP/Intent text itself too small
-        // to read, which trades one complaint for another.
+        // Squeezed to the edge of the available budget (topPad+2*lineH must
+        // clear medallionTopY-safetyMargin) after "hard to read on a phone"
+        // feedback on the old 15/14pt text - at frameH=480.4 the band has
+        // 51.25px total; this uses 2+2*24=50px, a bare 1.25px gap. That's
+        // the ceiling this card's baked geometry allows; a further bump
+        // needs a taller text band baked into the card art itself.
+        const float topPad = 2f, safetyMargin = 1f, lineH = 24f;
 
-        Text hpText = MakeText(go.transform, "HpText", Vector2.zero, TextAnchor.UpperCenter, 15);
+        Text hpText = MakeText(go.transform, "HpText", Vector2.zero, TextAnchor.UpperCenter, 19);
         hpText.rectTransform.anchorMin = new Vector2(0f, 1f);
         hpText.rectTransform.anchorMax = new Vector2(0f, 1f);
         hpText.rectTransform.pivot = new Vector2(0f, 1f);
         hpText.rectTransform.anchoredPosition = new Vector2(TextLeft * frameW, -(textBandTop + topPad));
         hpText.rectTransform.sizeDelta = new Vector2((TextRight - TextLeft) * frameW, lineH);
 
-        Text intentText = MakeText(go.transform, "IntentText", Vector2.zero, TextAnchor.UpperCenter, 14);
+        Text intentText = MakeText(go.transform, "IntentText", Vector2.zero, TextAnchor.UpperCenter, 18);
         intentText.color = new Color(1f, 0.75f, 0.3f);
         intentText.rectTransform.anchorMin = new Vector2(0f, 1f);
         intentText.rectTransform.anchorMax = new Vector2(0f, 1f);
@@ -392,6 +425,14 @@ public static class BarajaCombatSceneBuilder
         ContentSizeFitter fitter = contentGO.AddComponent<ContentSizeFitter>();
         fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
         scrollRect.content = contentRT;
+
+        // Coverflow: whichever card sits nearest the viewport's center scales
+        // up and renders in front - the card art itself never distorts since
+        // this only touches localScale, the layout group still positions
+        // everything at native size.
+        HandCarousel carousel = scrollGO.AddComponent<HandCarousel>();
+        carousel.ScrollRect = scrollRect;
+        carousel.Viewport = viewportRT;
 
         return contentGO;
     }

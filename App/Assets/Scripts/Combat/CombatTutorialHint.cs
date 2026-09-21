@@ -1,25 +1,34 @@
 using UnityEngine;
 using UnityEngine.UI;
 using Baraja.Core;
+using Baraja.Menu;
 
 namespace Baraja.Combat
 {
-    // A one-time banner explaining the core combat loop (select enemy, play
-    // card, End Turn) the first time anyone reaches the combat scene. This is
-    // the immediate fix for "I have no idea how to play" - the full paged
-    // explainer lives in the main menu's How to Play (TutorialPages.cs) for
-    // anyone who wants the deeper mechanics (status effects, block, etc).
+    // The full "How to Play" tutorial (TutorialPages.cs), shown as a
+    // click-through banner over the actual game board the first time anyone
+    // reaches combat - replaces the old main-menu-only parchment overlay,
+    // which was read divorced from the board it was describing. Back/Next
+    // page through it; Next becomes "Got it" on the last page.
     public class CombatTutorialHint : MonoBehaviour
     {
         private const string SeenKey = "baraja_combat_tutorial_seen";
 
         [HideInInspector] public GameObject Panel;
+        [HideInInspector] public Text TitleText;
         [HideInInspector] public Text BodyText;
-        [HideInInspector] public Button GotItButton;
+        [HideInInspector] public Text PageIndexText;
+        [HideInInspector] public Button BackButton;
+        [HideInInspector] public Text BackButtonLabel;
+        [HideInInspector] public Button NextButton;
+        [HideInInspector] public Text NextButtonLabel;
+
+        private int _pageIndex;
 
         private void Awake()
         {
-            GotItButton.onClick.AddListener(Dismiss);
+            BackButton.onClick.AddListener(() => ChangePage(-1));
+            NextButton.onClick.AddListener(OnNextClicked);
         }
 
         private void Start()
@@ -30,12 +39,34 @@ namespace Baraja.Combat
                 return;
             }
 
-            BodyText.text = GameSettings.Spanish
-                ? "Toca un enemigo para elegirlo, luego toca una carta para jugarla. " +
-                  "Cuando termines, toca \"End Turn\"."
-                : "Tap an enemy to select it, then tap a card to play it. " +
-                  "When you're done, tap \"End Turn\".";
+            _pageIndex = 0;
+            RefreshPage();
             Panel.SetActive(true);
+        }
+
+        private void ChangePage(int delta)
+        {
+            _pageIndex = Mathf.Clamp(_pageIndex + delta, 0, TutorialPages.Pages.Count - 1);
+            RefreshPage();
+        }
+
+        private void OnNextClicked()
+        {
+            if (_pageIndex >= TutorialPages.Pages.Count - 1) Dismiss();
+            else ChangePage(1);
+        }
+
+        private void RefreshPage()
+        {
+            var page = TutorialPages.Pages[_pageIndex];
+            bool spanish = GameSettings.Spanish;
+            TitleText.text = spanish ? page.TitleEs : page.TitleEn;
+            BodyText.text = spanish ? page.BodyEs : page.BodyEn;
+            PageIndexText.text = $"{_pageIndex + 1} / {TutorialPages.Pages.Count}";
+            BackButton.interactable = _pageIndex > 0;
+            BackButtonLabel.text = spanish ? "< Atrás" : "< Back";
+            bool lastPage = _pageIndex >= TutorialPages.Pages.Count - 1;
+            NextButtonLabel.text = lastPage ? (spanish ? "Entendido" : "Got it") : (spanish ? "Siguiente >" : "Next >");
         }
 
         private void Dismiss()

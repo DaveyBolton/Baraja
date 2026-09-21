@@ -170,103 +170,61 @@ public static class BarajaCombatSceneBuilder
     // in particular is 23px further out here because the eligible-keying
     // zone used to build this file was intentionally extended to x=600 to
     // clear a residual gradient strip, and the black backing behind the
-    // frame has to match wherever the file is ACTUALLY transparent, not
-    // wherever the unrelated original frame's border happened to measure -
-    // that mismatch is exactly what let the backdrop show through a sliver
-    // on the right edge of the window.
-    const float FrameWindowLeft = 158f / 736f;
-    const float FrameWindowRight = 600f / 736f;
-    const float FrameWindowTop = 96f / 680f;
-    const float FrameWindowBottom = 638f / 680f;
+    // enemy_combat_cards/<ArtId>.png is now a FULLY BAKED card - frame, bust,
+    // name, cost-gem, medallion, all composited in Python by the exact same
+    // build_all_enemy_cards.py pipeline the player cards use (same font, same
+    // masking, same geometry), just with the silver frame and blank rules
+    // text where HP/Block/Intent are overlaid live. Reusing that proven
+    // pipeline instead of reassembling the layers at runtime in C# is what
+    // actually fixed the repeated alignment bugs - one RawImage, not four.
+    // These fractions are only needed now to place the live text into the
+    // one zone the bake left blank (build_all_enemy_cards.py's text_band).
+    const float TextLeft = 158f / 736f, TextRight = 577f / 736f;
+    const float TextTop = 789f / 1040f;
 
-    // Inactive template instantiated per-enemy by CombatUI; never itself part of the live layout.
+    // Inactive template instantiated per-enemy by CombatUI; a full card, the
+    // same size as a hand card.
     static GameObject MakeEnemyPanelPrefab(Transform parent)
     {
         GameObject go = new GameObject("EnemyPanelPrefab");
         go.transform.SetParent(parent, false);
         RectTransform rt = go.AddComponent<RectTransform>();
-        rt.sizeDelta = new Vector2(340, 480);
+        float frameW = 340f;
+        float frameH = frameW * 1040f / 736f; // matches the hand card's own aspect/size exactly
+        rt.sizeDelta = new Vector2(frameW, frameH);
         Button btn = go.AddComponent<Button>();
 
-        // Frame's own footprint: matches the crop's 736:680 aspect, sized to
-        // the panel's width, and centered horizontally within the (slightly
-        // wider) panel.
-        float frameW = 320f;
-        float frameH = frameW * 680f / 736f;
-        float frameLeft = (340f - frameW) / 2f;
-
-        // All three layers below use the SAME top-left anchor/pivot (0,1),
-        // so anchoredPosition is a plain (x from panel's left, -y from
-        // panel's top) offset with no half-width correction to get wrong -
-        // that correction is exactly what put the window and the frame's
-        // actual hole in two different places the first time this was built.
-        float winLeft = frameLeft + FrameWindowLeft * frameW;
-        float winRight = frameLeft + FrameWindowRight * frameW;
-        float winTop = FrameWindowTop * frameH;
-        float winBottom = FrameWindowBottom * frameH;
-        float winW = winRight - winLeft;
-        float winH = winBottom - winTop;
-
-        // Solid black plate behind the whole window, matching the card
-        // builder's DARK_PLATE convention - without it the backdrop image
-        // would show through the frame's transparent window instead of the
-        // letterboxed black margin around the (square) bust art.
-        GameObject windowBgGO = new GameObject("WindowBg");
-        windowBgGO.transform.SetParent(go.transform, false);
-        Image windowBg = windowBgGO.AddComponent<Image>();
-        windowBg.color = Color.black;
-        RectTransform windowBgRT = windowBg.rectTransform;
-        windowBgRT.anchorMin = new Vector2(0f, 1f);
-        windowBgRT.anchorMax = new Vector2(0f, 1f);
-        windowBgRT.pivot = new Vector2(0f, 1f);
-        windowBgRT.anchoredPosition = new Vector2(winLeft, -winTop);
-        windowBgRT.sizeDelta = new Vector2(winW, winH);
-        btn.targetGraphic = windowBg;
-
-        // Bust art is square and already has a true-black background baked
-        // in (clean_card_backgrounds.py), so it letterboxes onto WindowBg
-        // exactly like the card builder's art panel - scaled to fit inside
-        // both window dimensions, not just one, since this window is
-        // narrower than it is tall.
         GameObject imgGO = new GameObject("Image");
         imgGO.transform.SetParent(go.transform, false);
         RawImage img = imgGO.AddComponent<RawImage>();
         RectTransform imgRT = img.rectTransform;
-        imgRT.anchorMin = new Vector2(0f, 1f);
-        imgRT.anchorMax = new Vector2(0f, 1f);
-        imgRT.pivot = new Vector2(0f, 1f);
-        float bustSize = Mathf.Min(winW, winH) * 0.85f;
-        imgRT.anchoredPosition = new Vector2(
-            winLeft + (winW - bustSize) / 2f,
-            -(winTop + (winH - bustSize) / 2f));
-        imgRT.sizeDelta = new Vector2(bustSize, bustSize);
+        imgRT.anchorMin = Vector2.zero;
+        imgRT.anchorMax = Vector2.one;
+        imgRT.offsetMin = Vector2.zero;
+        imgRT.offsetMax = Vector2.zero;
+        btn.targetGraphic = img;
 
-        // Frame overlay last, on top of both, so its opaque scrollwork draws
-        // over the letterboxed edges and only its window shows the art below.
-        GameObject frameGO = new GameObject("FrameOverlay");
-        frameGO.transform.SetParent(go.transform, false);
-        RawImage frameImg = frameGO.AddComponent<RawImage>();
-        frameImg.texture = Resources.Load<Texture2D>("Art/Enemies/enemy_frame_silver");
-        frameImg.raycastTarget = false;
-        RectTransform frameRT = frameImg.rectTransform;
-        frameRT.anchorMin = new Vector2(0f, 1f);
-        frameRT.anchorMax = new Vector2(0f, 1f);
-        frameRT.pivot = new Vector2(0f, 1f);
-        frameRT.anchoredPosition = new Vector2(frameLeft, 0);
-        frameRT.sizeDelta = new Vector2(frameW, frameH);
+        // HP/Block and Intent stacked inside the baked card's blank text
+        // band (~62px tall at this display size) - font sizes are chosen to
+        // fit that real on-screen height, not the point sizes the bake uses
+        // internally at full 1040px resolution.
+        float textBandTop = TextTop * frameH;
+        float lineH = 24f;
 
-        Text hpText = MakeText(go.transform, "HpText", new Vector2(0, -(frameH + 20)), TextAnchor.UpperCenter, 26);
-        hpText.rectTransform.anchorMin = new Vector2(0.5f, 1f);
-        hpText.rectTransform.anchorMax = new Vector2(0.5f, 1f);
-        hpText.rectTransform.pivot = new Vector2(0.5f, 1f);
-        hpText.rectTransform.sizeDelta = new Vector2(300, 80);
+        Text hpText = MakeText(go.transform, "HpText", Vector2.zero, TextAnchor.UpperCenter, 17);
+        hpText.rectTransform.anchorMin = new Vector2(0f, 1f);
+        hpText.rectTransform.anchorMax = new Vector2(0f, 1f);
+        hpText.rectTransform.pivot = new Vector2(0f, 1f);
+        hpText.rectTransform.anchoredPosition = new Vector2(TextLeft * frameW, -(textBandTop + 6f));
+        hpText.rectTransform.sizeDelta = new Vector2((TextRight - TextLeft) * frameW, lineH);
 
-        Text intentText = MakeText(go.transform, "IntentText", new Vector2(0, -(frameH + 20 + 80 + 10)), TextAnchor.UpperCenter, 24);
+        Text intentText = MakeText(go.transform, "IntentText", Vector2.zero, TextAnchor.UpperCenter, 16);
         intentText.color = new Color(1f, 0.75f, 0.3f);
-        intentText.rectTransform.anchorMin = new Vector2(0.5f, 1f);
-        intentText.rectTransform.anchorMax = new Vector2(0.5f, 1f);
-        intentText.rectTransform.pivot = new Vector2(0.5f, 1f);
-        intentText.rectTransform.sizeDelta = new Vector2(300, 60);
+        intentText.rectTransform.anchorMin = new Vector2(0f, 1f);
+        intentText.rectTransform.anchorMax = new Vector2(0f, 1f);
+        intentText.rectTransform.pivot = new Vector2(0f, 1f);
+        intentText.rectTransform.anchoredPosition = new Vector2(TextLeft * frameW, -(textBandTop + 6f + lineH));
+        intentText.rectTransform.sizeDelta = new Vector2((TextRight - TextLeft) * frameW, lineH);
 
         go.SetActive(false);
         return go;

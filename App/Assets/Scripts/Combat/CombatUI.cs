@@ -98,7 +98,7 @@ namespace Baraja.Combat
             foreach (var panel in _enemyPanels)
             {
                 bool dead = panel.Enemy.IsDead;
-                panel.HpText.text = dead ? "—" : $"{panel.Enemy.Data.DisplayName(Spanish)}\nHP {panel.Enemy.Hp}/{panel.Enemy.MaxHp}  Block {panel.Enemy.Block}";
+                panel.HpText.text = dead ? "" : $"HP {panel.Enemy.Hp}/{panel.Enemy.MaxHp}  Block {panel.Enemy.Block}";
                 panel.IntentText.text = dead ? "" : DescribeIntent(panel.Enemy.CurrentIntent);
                 panel.Button.interactable = !dead;
                 panel.Image.color = panel.Enemy == _selectedTarget ? Color.white : new Color(0.7f, 0.7f, 0.7f);
@@ -166,7 +166,8 @@ namespace Baraja.Combat
 
         private Texture2D LoadEnemyTexture(string artId)
         {
-            return Resources.Load<Texture2D>($"Art/Enemies/{artId}");
+            string folder = Spanish ? "ES" : "EN";
+            return Resources.Load<Texture2D>($"Art/EnemyCards/{folder}/{artId}");
         }
 
         private void OnDestroy()

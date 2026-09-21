@@ -14,6 +14,13 @@ using Baraja.Menu;
 /// </summary>
 public static class BarajaMainMenuSceneBuilder
 {
+    // One button size for the whole game, wide enough to fit the longest
+    // label anywhere ("How to Play") at a legible size - measured with
+    // PIL against CinzelDecorative-Bold at 36pt: 269px text width, so 460px
+    // leaves generous padding inside the gem on every side.
+    const float StandardButtonWidth = 460f;
+    const int StandardButtonFontSize = 36;
+
     public static void Build()
     {
         Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
@@ -44,21 +51,28 @@ public static class BarajaMainMenuSceneBuilder
         title.rectTransform.sizeDelta = new Vector2(1020, 160);
         title.text = "Baraja de los Muertos";
 
-        Button playBtn = MakeButton(canvasGO.transform, "PlayButton", new Vector2(440, 116), "Play", 44);
+        // Vertical spacing between stacked gem buttons has to be derived from
+        // the gem's own height, not a leftover offset sized for the old flat
+        // rectangle buttons - those were ~90-115px tall, these are 207px, so
+        // the old spacing had every button overlapping the next one below it.
+        float navButtonHeight = StandardButtonWidth / BarajaGemButtons.Aspect;
+        float navSpacing = navButtonHeight + 24f;
+
+        Button playBtn = MakeButton(canvasGO.transform, "PlayButton", StandardButtonWidth, "Play", StandardButtonFontSize, GemColor.Gold);
         CenterAnchor(playBtn.GetComponent<RectTransform>());
-        playBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, 120);
+        playBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, navSpacing * 1.5f);
 
-        Button howToPlayBtn = MakeButton(canvasGO.transform, "HowToPlayButton", new Vector2(440, 96), "How to Play", 34);
+        Button howToPlayBtn = MakeButton(canvasGO.transform, "HowToPlayButton", StandardButtonWidth, "How to Play", StandardButtonFontSize, GemColor.Blue);
         CenterAnchor(howToPlayBtn.GetComponent<RectTransform>());
-        howToPlayBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, -10);
+        howToPlayBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, navSpacing * 0.5f);
 
-        Button optionsBtn = MakeButton(canvasGO.transform, "OptionsButton", new Vector2(440, 96), "Options", 34);
+        Button optionsBtn = MakeButton(canvasGO.transform, "OptionsButton", StandardButtonWidth, "Options", StandardButtonFontSize, GemColor.Purple);
         CenterAnchor(optionsBtn.GetComponent<RectTransform>());
-        optionsBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, -130);
+        optionsBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, -navSpacing * 0.5f);
 
-        Button storeBtn = MakeButton(canvasGO.transform, "StoreButton", new Vector2(440, 96), "Store", 34);
+        Button storeBtn = MakeButton(canvasGO.transform, "StoreButton", StandardButtonWidth, "Store", StandardButtonFontSize, GemColor.Green);
         CenterAnchor(storeBtn.GetComponent<RectTransform>());
-        storeBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, -250);
+        storeBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, -navSpacing * 1.5f);
 
         // --- Options overlay ---
         GameObject optionsPanel = MakeOverlayPanel(canvasGO.transform, "OptionsPanel");
@@ -85,14 +99,19 @@ public static class BarajaMainMenuSceneBuilder
         musicLabel.text = "Music Volume";
         Slider musicSlider = MakeSlider(optionsPanel.transform, "MusicSlider", new Vector2(0, -490));
 
-        Button langBtn = MakeButton(optionsPanel.transform, "LanguageButton", new Vector2(480, 96), "Idioma: Español", 32);
-        CenterAnchor(langBtn.GetComponent<RectTransform>());
-        langBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, -650);
+        // Buttons below here are top-anchored (matching the sliders/labels
+        // above) rather than center-anchored, so their vertical stacking can
+        // be computed the same way instead of mixing two coordinate systems.
+        float panelButtonHeight = StandardButtonWidth / BarajaGemButtons.Aspect;
+
+        Button langBtn = MakeButton(optionsPanel.transform, "LanguageButton", StandardButtonWidth, "Español", StandardButtonFontSize, GemColor.Rainbow);
+        AnchorTop(langBtn.GetComponent<RectTransform>());
+        langBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, -590);
         Text langLabel = langBtn.GetComponentInChildren<Text>();
 
-        Button optionsCloseBtn = MakeButton(optionsPanel.transform, "OptionsCloseButton", new Vector2(250, 84), "Close", 32);
-        CenterAnchor(optionsCloseBtn.GetComponent<RectTransform>());
-        optionsCloseBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, -840);
+        Button optionsCloseBtn = MakeButton(optionsPanel.transform, "OptionsCloseButton", StandardButtonWidth, "Close", StandardButtonFontSize, GemColor.Silver);
+        AnchorTop(optionsCloseBtn.GetComponent<RectTransform>());
+        optionsCloseBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, -590 - panelButtonHeight - 30f);
 
         // --- Tutorial overlay ---
         GameObject tutorialPanel = MakeOverlayPanel(canvasGO.transform, "TutorialPanel");
@@ -108,21 +127,27 @@ public static class BarajaMainMenuSceneBuilder
         AnchorTop(tutorialPageIndex.rectTransform);
         tutorialPageIndex.color = new Color(1f, 1f, 1f, 0.6f);
 
-        Button tutorialBackBtn = MakeButton(tutorialPanel.transform, "TutorialBackButton", new Vector2(230, 94), "< Back", 32);
+        Button tutorialBackBtn = MakeButton(tutorialPanel.transform, "TutorialBackButton", StandardButtonWidth, "< Back", StandardButtonFontSize, GemColor.Silver);
         tutorialBackBtn.GetComponent<RectTransform>().anchorMin = new Vector2(0f, 0f);
         tutorialBackBtn.GetComponent<RectTransform>().anchorMax = new Vector2(0f, 0f);
         tutorialBackBtn.GetComponent<RectTransform>().pivot = new Vector2(0f, 0f);
         tutorialBackBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(40, 260);
 
-        Button tutorialNextBtn = MakeButton(tutorialPanel.transform, "TutorialNextButton", new Vector2(230, 94), "Next >", 32);
+        Button tutorialNextBtn = MakeButton(tutorialPanel.transform, "TutorialNextButton", StandardButtonWidth, "Next >", StandardButtonFontSize, GemColor.Blue);
         tutorialNextBtn.GetComponent<RectTransform>().anchorMin = new Vector2(1f, 0f);
         tutorialNextBtn.GetComponent<RectTransform>().anchorMax = new Vector2(1f, 0f);
         tutorialNextBtn.GetComponent<RectTransform>().pivot = new Vector2(1f, 0f);
         tutorialNextBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(-40, 260);
 
-        Button tutorialCloseBtn = MakeButton(tutorialPanel.transform, "TutorialCloseButton", new Vector2(250, 84), "Close", 32);
-        CenterAnchor(tutorialCloseBtn.GetComponent<RectTransform>());
-        tutorialCloseBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, 130);
+        // Below Back/Next (bottom-anchored at y=260, 207px tall), not
+        // center-anchored - center-anchoring mixed a second coordinate
+        // system into this stack and the two overlapped once the buttons
+        // grew from ~90px tall to 207px.
+        Button tutorialCloseBtn = MakeButton(tutorialPanel.transform, "TutorialCloseButton", StandardButtonWidth, "Close", StandardButtonFontSize, GemColor.Silver);
+        tutorialCloseBtn.GetComponent<RectTransform>().anchorMin = new Vector2(0.5f, 0f);
+        tutorialCloseBtn.GetComponent<RectTransform>().anchorMax = new Vector2(0.5f, 0f);
+        tutorialCloseBtn.GetComponent<RectTransform>().pivot = new Vector2(0.5f, 0f);
+        tutorialCloseBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, 30);
 
         // --- Store overlay ---
         GameObject storePanel = MakeOverlayPanel(canvasGO.transform, "StorePanel");
@@ -141,7 +166,7 @@ public static class BarajaMainMenuSceneBuilder
         GameObject storeScrollContent = MakeScrollList(storePanel.transform, "StoreScroll",
             new Vector2(0, -260), new Vector2(1000, 1300));
 
-        Button storeCloseBtn = MakeButton(storePanel.transform, "StoreCloseButton", new Vector2(250, 84), "Close", 32);
+        Button storeCloseBtn = MakeButton(storePanel.transform, "StoreCloseButton", StandardButtonWidth, "Close", StandardButtonFontSize, GemColor.Silver);
         storeCloseBtn.GetComponent<RectTransform>().anchorMin = new Vector2(0.5f, 0f);
         storeCloseBtn.GetComponent<RectTransform>().anchorMax = new Vector2(0.5f, 0f);
         storeCloseBtn.GetComponent<RectTransform>().pivot = new Vector2(0.5f, 0f);
@@ -300,7 +325,7 @@ public static class BarajaMainMenuSceneBuilder
         priceText.rectTransform.sizeDelta = new Vector2(260, 34);
         priceText.color = new Color(1f, 0.85f, 0.4f);
 
-        Button buyBtn = MakeButton(go.transform, "BuyButton", new Vector2(180, 64), "Buy", 26);
+        Button buyBtn = MakeButton(go.transform, "BuyButton", 180f, "Buy", 22, GemColor.Gold);
         buyBtn.GetComponent<RectTransform>().anchorMin = new Vector2(1f, 1f);
         buyBtn.GetComponent<RectTransform>().anchorMax = new Vector2(1f, 1f);
         buyBtn.GetComponent<RectTransform>().pivot = new Vector2(1f, 1f);
@@ -380,13 +405,17 @@ public static class BarajaMainMenuSceneBuilder
         return t;
     }
 
-    static Button MakeButton(Transform parent, string name, Vector2 size, string label, int fontSize)
+    // Brilliant-cut gem button, sized from the caller but always drawn from
+    // BarajaGemButtons.Aspect so the gem itself is never stretched or
+    // squashed - callers pick width, height is derived to match.
+    static Button MakeButton(Transform parent, string name, float width, string label, int fontSize, GemColor gem)
     {
+        float height = width / BarajaGemButtons.Aspect;
         GameObject go = new GameObject(name);
         go.transform.SetParent(parent, false);
-        Image img = go.AddComponent<Image>();
-        img.color = new Color(0.6f, 0.15f, 0.15f, 0.9f);
-        img.rectTransform.sizeDelta = size;
+        RawImage img = go.AddComponent<RawImage>();
+        img.texture = BarajaGemButtons.Get(gem);
+        img.rectTransform.sizeDelta = new Vector2(width, height);
         Button btn = go.AddComponent<Button>();
         btn.targetGraphic = img;
 
@@ -396,6 +425,12 @@ public static class BarajaMainMenuSceneBuilder
         t.rectTransform.offsetMin = Vector2.zero;
         t.rectTransform.offsetMax = Vector2.zero;
         t.text = label;
+
+        // Black outline so the label stays legible across the gem's bright
+        // and shadowed facets alike, matching the design mockup.
+        Outline outline = t.gameObject.AddComponent<Outline>();
+        outline.effectColor = new Color(0f, 0f, 0f, 0.9f);
+        outline.effectDistance = new Vector2(2f, -2f);
 
         return btn;
     }

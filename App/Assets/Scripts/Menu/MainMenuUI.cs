@@ -77,7 +77,12 @@ namespace Baraja.Menu
 
         private void RefreshLanguageLabel()
         {
-            LanguageButtonLabel.text = GameSettings.Spanish ? "Idioma: Español" : "Language: English";
+            // Just the language name, not "Idioma: Español" / "Language:
+            // English" - those were by far the longest labels in the game
+            // and would have forced every other gem button to match their
+            // width. Context (sitting right below the volume sliders) is
+            // enough to explain what the button does.
+            LanguageButtonLabel.text = GameSettings.Spanish ? "Español" : "English";
         }
 
         private void OpenTutorial()

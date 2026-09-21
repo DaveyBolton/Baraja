@@ -12,6 +12,12 @@ using Baraja.Combat;
 /// </summary>
 public static class BarajaCombatSceneBuilder
 {
+    // One button size for the whole scene, wide enough to fit the longest
+    // label anywhere in the game ("How to Play", on the main menu) at a
+    // legible size - see BarajaMainMenuSceneBuilder for the measurement.
+    const float StandardButtonWidth = 460f;
+    const int StandardButtonFontSize = 36;
+
     public static void Build()
     {
         Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
@@ -47,14 +53,17 @@ public static class BarajaCombatSceneBuilder
         backdropRT.offsetMin = Vector2.zero;
         backdropRT.offsetMax = Vector2.zero;
 
-        // --- Top bar: player HP / energy ---
-        Text playerHp = MakeTitleText(canvasGO.transform, "PlayerHpText", new Vector2(0, -30), TextAnchor.UpperCenter, 46);
-        AnchorTop(playerHp.rectTransform);
-        playerHp.rectTransform.sizeDelta = new Vector2(900, 70);
+        // --- Top bar: player HP / energy, left-aligned so the much bigger
+        // gem End Turn button (added below) has the right side of the bar
+        // to itself instead of overlapping centered text - a standard
+        // stats-left/action-right HUD split. ---
+        Text playerHp = MakeTitleText(canvasGO.transform, "PlayerHpText", new Vector2(30, -30), TextAnchor.UpperLeft, 46);
+        AnchorTopLeft(playerHp.rectTransform);
+        playerHp.rectTransform.sizeDelta = new Vector2(540, 70);
 
-        Text playerEnergy = MakeTitleText(canvasGO.transform, "PlayerEnergyText", new Vector2(0, -100), TextAnchor.UpperCenter, 40);
-        AnchorTop(playerEnergy.rectTransform);
-        playerEnergy.rectTransform.sizeDelta = new Vector2(900, 60);
+        Text playerEnergy = MakeTitleText(canvasGO.transform, "PlayerEnergyText", new Vector2(30, -100), TextAnchor.UpperLeft, 40);
+        AnchorTopLeft(playerEnergy.rectTransform);
+        playerEnergy.rectTransform.sizeDelta = new Vector2(540, 60);
 
         // --- Enemy row, upper-middle ---
         GameObject enemyContainer = new GameObject("EnemyContainer");
@@ -88,7 +97,7 @@ public static class BarajaCombatSceneBuilder
         // entirely (rather than beside the hand) so it can never collide with the
         // cards - a bottom-right placement overlapped whichever card ended up
         // rightmost once the hand had 4+ cards in it. ---
-        Button endTurnBtn = MakeButton(canvasGO.transform, "EndTurnButton", new Vector2(260, 96), "End Turn", 36);
+        Button endTurnBtn = MakeButton(canvasGO.transform, "EndTurnButton", StandardButtonWidth, "End Turn", StandardButtonFontSize, GemColor.Ruby);
         RectTransform endTurnRT = endTurnBtn.GetComponent<RectTransform>();
         endTurnRT.anchorMin = new Vector2(1f, 1f);
         endTurnRT.anchorMax = new Vector2(1f, 1f);
@@ -104,6 +113,8 @@ public static class BarajaCombatSceneBuilder
         GameObject cardButtonPrefab = MakeCardButtonPrefab(canvasGO.transform);
 
         // --- First-time tutorial banner, between the top bar and the enemy row ---
+        float hintButtonHeight = StandardButtonWidth / BarajaGemButtons.Aspect;
+        float hintPanelHeight = 20f + 150f + 20f + hintButtonHeight + 20f; // pad + body + gap + button + pad
         GameObject hintPanel = new GameObject("TutorialHintPanel");
         hintPanel.transform.SetParent(canvasGO.transform, false);
         Image hintBg = hintPanel.AddComponent<Image>();
@@ -112,16 +123,16 @@ public static class BarajaCombatSceneBuilder
         hintRT.anchorMin = new Vector2(0.5f, 1f);
         hintRT.anchorMax = new Vector2(0.5f, 1f);
         hintRT.pivot = new Vector2(0.5f, 1f);
-        hintRT.anchoredPosition = new Vector2(0, -180);
-        hintRT.sizeDelta = new Vector2(980, 220);
+        hintRT.anchoredPosition = new Vector2(0, -250); // clears End Turn's bottom edge at ~237px
+        hintRT.sizeDelta = new Vector2(980, hintPanelHeight);
 
-        Text hintBody = MakeText(hintPanel.transform, "HintBodyText", new Vector2(0, 25), TextAnchor.MiddleCenter, 36);
-        hintBody.rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
-        hintBody.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
-        hintBody.rectTransform.pivot = new Vector2(0.5f, 0.5f);
-        hintBody.rectTransform.sizeDelta = new Vector2(900, 140);
+        Text hintBody = MakeText(hintPanel.transform, "HintBodyText", new Vector2(0, -20), TextAnchor.UpperCenter, 36);
+        hintBody.rectTransform.anchorMin = new Vector2(0.5f, 1f);
+        hintBody.rectTransform.anchorMax = new Vector2(0.5f, 1f);
+        hintBody.rectTransform.pivot = new Vector2(0.5f, 1f);
+        hintBody.rectTransform.sizeDelta = new Vector2(900, 150);
 
-        Button hintGotIt = MakeButton(hintPanel.transform, "GotItButton", new Vector2(210, 68), "Got it", 30);
+        Button hintGotIt = MakeButton(hintPanel.transform, "GotItButton", StandardButtonWidth, "Got it", StandardButtonFontSize, GemColor.Ruby);
         RectTransform hintBtnRT = hintGotIt.GetComponent<RectTransform>();
         hintBtnRT.anchorMin = new Vector2(0.5f, 0f);
         hintBtnRT.anchorMax = new Vector2(0.5f, 0f);
@@ -302,13 +313,17 @@ public static class BarajaCombatSceneBuilder
         return t;
     }
 
-    static Button MakeButton(Transform parent, string name, Vector2 size, string label, int fontSize)
+    // Brilliant-cut gem button, sized from the caller but always drawn from
+    // BarajaGemButtons.Aspect so the gem itself is never stretched or
+    // squashed - callers pick width, height is derived to match.
+    static Button MakeButton(Transform parent, string name, float width, string label, int fontSize, GemColor gem)
     {
+        float height = width / BarajaGemButtons.Aspect;
         GameObject go = new GameObject(name);
         go.transform.SetParent(parent, false);
-        Image img = go.AddComponent<Image>();
-        img.color = new Color(0.6f, 0.15f, 0.15f, 0.9f);
-        img.rectTransform.sizeDelta = size;
+        RawImage img = go.AddComponent<RawImage>();
+        img.texture = BarajaGemButtons.Get(gem);
+        img.rectTransform.sizeDelta = new Vector2(width, height);
         Button btn = go.AddComponent<Button>();
         btn.targetGraphic = img;
 
@@ -320,6 +335,12 @@ public static class BarajaCombatSceneBuilder
         t.rectTransform.offsetMin = Vector2.zero;
         t.rectTransform.offsetMax = Vector2.zero;
         t.text = label;
+
+        // Black outline so the label stays legible across the gem's bright
+        // and shadowed facets alike, matching the design mockup.
+        Outline outline = t.gameObject.AddComponent<Outline>();
+        outline.effectColor = new Color(0f, 0f, 0f, 0.9f);
+        outline.effectDistance = new Vector2(2f, -2f);
 
         return btn;
     }
@@ -380,5 +401,12 @@ public static class BarajaCombatSceneBuilder
         rt.anchorMin = new Vector2(0.5f, 1f);
         rt.anchorMax = new Vector2(0.5f, 1f);
         rt.pivot = new Vector2(0.5f, 1f);
+    }
+
+    static void AnchorTopLeft(RectTransform rt)
+    {
+        rt.anchorMin = new Vector2(0f, 1f);
+        rt.anchorMax = new Vector2(0f, 1f);
+        rt.pivot = new Vector2(0f, 1f);
     }
 }

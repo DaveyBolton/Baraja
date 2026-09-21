@@ -48,11 +48,11 @@ public static class BarajaCombatSceneBuilder
         backdropRT.offsetMax = Vector2.zero;
 
         // --- Top bar: player HP / energy ---
-        Text playerHp = MakeText(canvasGO.transform, "PlayerHpText", new Vector2(0, -30), TextAnchor.UpperCenter, 44);
+        Text playerHp = MakeTitleText(canvasGO.transform, "PlayerHpText", new Vector2(0, -30), TextAnchor.UpperCenter, 46);
         AnchorTop(playerHp.rectTransform);
         playerHp.rectTransform.sizeDelta = new Vector2(900, 70);
 
-        Text playerEnergy = MakeText(canvasGO.transform, "PlayerEnergyText", new Vector2(0, -100), TextAnchor.UpperCenter, 40);
+        Text playerEnergy = MakeTitleText(canvasGO.transform, "PlayerEnergyText", new Vector2(0, -100), TextAnchor.UpperCenter, 40);
         AnchorTop(playerEnergy.rectTransform);
         playerEnergy.rectTransform.sizeDelta = new Vector2(900, 60);
 
@@ -77,7 +77,7 @@ public static class BarajaCombatSceneBuilder
         // with Upper alignment so overflow grows downward into that band, rather
         // than bottom-anchored Overflow, which stacks new lines back over old
         // ones once content exceeds the rect (the cause of the overlap Dave saw).
-        Text logText = MakeText(canvasGO.transform, "LogText", new Vector2(0, -1000), TextAnchor.UpperCenter, 30);
+        Text logText = MakeText(canvasGO.transform, "LogText", new Vector2(0, -1000), TextAnchor.UpperCenter, 34);
         logText.rectTransform.anchorMin = new Vector2(0.5f, 1f);
         logText.rectTransform.anchorMax = new Vector2(0.5f, 1f);
         logText.rectTransform.pivot = new Vector2(0.5f, 1f);
@@ -88,7 +88,7 @@ public static class BarajaCombatSceneBuilder
         // entirely (rather than beside the hand) so it can never collide with the
         // cards - a bottom-right placement overlapped whichever card ended up
         // rightmost once the hand had 4+ cards in it. ---
-        Button endTurnBtn = MakeButton(canvasGO.transform, "EndTurnButton", new Vector2(240, 90), "End Turn", 32);
+        Button endTurnBtn = MakeButton(canvasGO.transform, "EndTurnButton", new Vector2(260, 96), "End Turn", 36);
         RectTransform endTurnRT = endTurnBtn.GetComponent<RectTransform>();
         endTurnRT.anchorMin = new Vector2(1f, 1f);
         endTurnRT.anchorMax = new Vector2(1f, 1f);
@@ -115,13 +115,13 @@ public static class BarajaCombatSceneBuilder
         hintRT.anchoredPosition = new Vector2(0, -180);
         hintRT.sizeDelta = new Vector2(980, 220);
 
-        Text hintBody = MakeText(hintPanel.transform, "HintBodyText", new Vector2(0, 25), TextAnchor.MiddleCenter, 32);
+        Text hintBody = MakeText(hintPanel.transform, "HintBodyText", new Vector2(0, 25), TextAnchor.MiddleCenter, 36);
         hintBody.rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
         hintBody.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
         hintBody.rectTransform.pivot = new Vector2(0.5f, 0.5f);
         hintBody.rectTransform.sizeDelta = new Vector2(900, 140);
 
-        Button hintGotIt = MakeButton(hintPanel.transform, "GotItButton", new Vector2(200, 64), "Got it", 28);
+        Button hintGotIt = MakeButton(hintPanel.transform, "GotItButton", new Vector2(210, 68), "Got it", 30);
         RectTransform hintBtnRT = hintGotIt.GetComponent<RectTransform>();
         hintBtnRT.anchorMin = new Vector2(0.5f, 0f);
         hintBtnRT.anchorMax = new Vector2(0.5f, 0f);
@@ -181,6 +181,12 @@ public static class BarajaCombatSceneBuilder
     // one zone the bake left blank (build_all_enemy_cards.py's text_band).
     const float TextLeft = 158f / 736f, TextRight = 577f / 736f;
     const float TextTop = 789f / 1040f;
+    // The medallion ring sits at MEDALLION_CY=960, SOCKET_R=60 in the same
+    // 1040-tall canvas (build_all_enemy_cards.py) - its top edge is 900/1040.
+    // The live HP/Intent text was overlapping into it because its box simply
+    // ran to the bottom of the text band with no awareness of where the
+    // medallion actually starts underneath that band.
+    const float MedallionTop = 900f / 1040f;
 
     // Inactive template instantiated per-enemy by CombatUI; a full card, the
     // same size as a hand card.
@@ -205,26 +211,41 @@ public static class BarajaCombatSceneBuilder
         btn.targetGraphic = img;
 
         // HP/Block and Intent stacked inside the baked card's blank text
-        // band (~62px tall at this display size) - font sizes are chosen to
-        // fit that real on-screen height, not the point sizes the bake uses
-        // internally at full 1040px resolution.
+        // band, sized to leave real clearance above the medallion ring
+        // rather than just filling the band's nominal height - the two
+        // lines together must end comfortably before MedallionTop, with a
+        // margin, or the text visually crowds the ring/skull below it.
         float textBandTop = TextTop * frameH;
-        float lineH = 24f;
+        float medallionTopY = MedallionTop * frameH;
+        const float topPad = 4f, safetyMargin = 10f, lineH = 18f;
+        // Solved, not guessed: at frameH=480.4 the text band starts at
+        // 364.5px and the medallion at 415.75px, leaving 51.25px total.
+        // topPad(4) + 2*lineH(36) = 40px used, ending at 404.5px - an
+        // 11px real visual gap before the ring. Shrinking further to chase
+        // a bigger gap starts making the HP/Intent text itself too small
+        // to read, which trades one complaint for another.
 
-        Text hpText = MakeText(go.transform, "HpText", Vector2.zero, TextAnchor.UpperCenter, 17);
+        Text hpText = MakeText(go.transform, "HpText", Vector2.zero, TextAnchor.UpperCenter, 15);
         hpText.rectTransform.anchorMin = new Vector2(0f, 1f);
         hpText.rectTransform.anchorMax = new Vector2(0f, 1f);
         hpText.rectTransform.pivot = new Vector2(0f, 1f);
-        hpText.rectTransform.anchoredPosition = new Vector2(TextLeft * frameW, -(textBandTop + 6f));
+        hpText.rectTransform.anchoredPosition = new Vector2(TextLeft * frameW, -(textBandTop + topPad));
         hpText.rectTransform.sizeDelta = new Vector2((TextRight - TextLeft) * frameW, lineH);
 
-        Text intentText = MakeText(go.transform, "IntentText", Vector2.zero, TextAnchor.UpperCenter, 16);
+        Text intentText = MakeText(go.transform, "IntentText", Vector2.zero, TextAnchor.UpperCenter, 14);
         intentText.color = new Color(1f, 0.75f, 0.3f);
         intentText.rectTransform.anchorMin = new Vector2(0f, 1f);
         intentText.rectTransform.anchorMax = new Vector2(0f, 1f);
         intentText.rectTransform.pivot = new Vector2(0f, 1f);
-        intentText.rectTransform.anchoredPosition = new Vector2(TextLeft * frameW, -(textBandTop + 6f + lineH));
+        intentText.rectTransform.anchoredPosition = new Vector2(TextLeft * frameW, -(textBandTop + topPad + lineH));
         intentText.rectTransform.sizeDelta = new Vector2((TextRight - TextLeft) * frameW, lineH);
+
+        // Guard rail: fail loudly at build time rather than silently
+        // shipping overlap if the frame size or geometry ever changes.
+        float textBottom = textBandTop + topPad + lineH * 2f;
+        if (textBottom > medallionTopY - safetyMargin)
+            Debug.LogWarning($"Enemy card HP/Intent text ({textBottom:F0}px) is too close to the " +
+                              $"medallion ({medallionTopY:F0}px) - shrink lineH or the font sizes.");
 
         go.SetActive(false);
         return go;
@@ -257,18 +278,27 @@ public static class BarajaCombatSceneBuilder
         return go;
     }
 
+    // Body font (Crimson Text) by default - MakeTitleText/MakeButton switch
+    // to the decorative Cinzel Decorative face for headers and button labels.
     static Text MakeText(Transform parent, string name, Vector2 pos, TextAnchor anchor, int size)
     {
         GameObject go = new GameObject(name);
         go.transform.SetParent(parent, false);
         Text t = go.AddComponent<Text>();
-        t.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        t.font = BarajaFonts.Body;
         t.fontSize = size;
         t.alignment = anchor;
         t.color = Color.white;
         t.verticalOverflow = VerticalWrapMode.Overflow;
         t.rectTransform.sizeDelta = new Vector2(800, 100);
         t.rectTransform.anchoredPosition = pos;
+        return t;
+    }
+
+    static Text MakeTitleText(Transform parent, string name, Vector2 pos, TextAnchor anchor, int size)
+    {
+        Text t = MakeText(parent, name, pos, anchor, size);
+        t.font = BarajaFonts.Title;
         return t;
     }
 
@@ -282,7 +312,9 @@ public static class BarajaCombatSceneBuilder
         Button btn = go.AddComponent<Button>();
         btn.targetGraphic = img;
 
-        Text t = MakeText(go.transform, "Label", Vector2.zero, TextAnchor.MiddleCenter, fontSize);
+        // Buttons always use the decorative title face - short, high-emphasis
+        // labels are exactly where an engraved-plaque look reads best.
+        Text t = MakeTitleText(go.transform, "Label", Vector2.zero, TextAnchor.MiddleCenter, fontSize);
         t.rectTransform.anchorMin = Vector2.zero;
         t.rectTransform.anchorMax = Vector2.one;
         t.rectTransform.offsetMin = Vector2.zero;

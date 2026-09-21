@@ -39,30 +39,30 @@ public static class BarajaMainMenuSceneBuilder
         canvasGO.AddComponent<GraphicRaycaster>();
 
         // --- Title panel: always visible underneath whichever overlay is open ---
-        Text title = MakeText(canvasGO.transform, "TitleText", new Vector2(0, -260), TextAnchor.MiddleCenter, 64);
+        Text title = MakeTitleText(canvasGO.transform, "TitleText", new Vector2(0, -260), TextAnchor.MiddleCenter, 72);
         AnchorTop(title.rectTransform);
-        title.rectTransform.sizeDelta = new Vector2(900, 160);
+        title.rectTransform.sizeDelta = new Vector2(1020, 160);
         title.text = "Baraja de los Muertos";
 
-        Button playBtn = MakeButton(canvasGO.transform, "PlayButton", new Vector2(420, 110), "Play", 40);
+        Button playBtn = MakeButton(canvasGO.transform, "PlayButton", new Vector2(440, 116), "Play", 44);
         CenterAnchor(playBtn.GetComponent<RectTransform>());
         playBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, 120);
 
-        Button howToPlayBtn = MakeButton(canvasGO.transform, "HowToPlayButton", new Vector2(420, 90), "How to Play", 32);
+        Button howToPlayBtn = MakeButton(canvasGO.transform, "HowToPlayButton", new Vector2(440, 96), "How to Play", 34);
         CenterAnchor(howToPlayBtn.GetComponent<RectTransform>());
         howToPlayBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, -10);
 
-        Button optionsBtn = MakeButton(canvasGO.transform, "OptionsButton", new Vector2(420, 90), "Options", 32);
+        Button optionsBtn = MakeButton(canvasGO.transform, "OptionsButton", new Vector2(440, 96), "Options", 34);
         CenterAnchor(optionsBtn.GetComponent<RectTransform>());
         optionsBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, -130);
 
-        Button storeBtn = MakeButton(canvasGO.transform, "StoreButton", new Vector2(420, 90), "Store", 32);
+        Button storeBtn = MakeButton(canvasGO.transform, "StoreButton", new Vector2(440, 96), "Store", 34);
         CenterAnchor(storeBtn.GetComponent<RectTransform>());
         storeBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, -250);
 
         // --- Options overlay ---
         GameObject optionsPanel = MakeOverlayPanel(canvasGO.transform, "OptionsPanel");
-        Text optionsTitle = MakeText(optionsPanel.transform, "OptionsTitle", new Vector2(0, -80), TextAnchor.MiddleCenter, 48);
+        Text optionsTitle = MakeTitleText(optionsPanel.transform, "OptionsTitle", new Vector2(0, -80), TextAnchor.MiddleCenter, 54);
         AnchorTop(optionsTitle.rectTransform);
         optionsTitle.text = "Options";
 
@@ -73,75 +73,75 @@ public static class BarajaMainMenuSceneBuilder
         // AnchorTop + MiddleLeft alignment previously put the label's whole
         // 800-wide box centered on screen, so left-aligned text rendered
         // starting near x=-220 and never appeared on screen at all.
-        Text fxLabel = MakeText(optionsPanel.transform, "FxLabel", new Vector2(180, -260), TextAnchor.MiddleLeft, 32);
+        Text fxLabel = MakeText(optionsPanel.transform, "FxLabel", new Vector2(180, -260), TextAnchor.MiddleLeft, 34);
         AnchorTopLeft(fxLabel.rectTransform);
         fxLabel.rectTransform.sizeDelta = new Vector2(400, 50);
         fxLabel.text = "FX Volume";
         Slider fxSlider = MakeSlider(optionsPanel.transform, "FxSlider", new Vector2(0, -330));
 
-        Text musicLabel = MakeText(optionsPanel.transform, "MusicLabel", new Vector2(180, -420), TextAnchor.MiddleLeft, 32);
+        Text musicLabel = MakeText(optionsPanel.transform, "MusicLabel", new Vector2(180, -420), TextAnchor.MiddleLeft, 34);
         AnchorTopLeft(musicLabel.rectTransform);
         musicLabel.rectTransform.sizeDelta = new Vector2(400, 50);
         musicLabel.text = "Music Volume";
         Slider musicSlider = MakeSlider(optionsPanel.transform, "MusicSlider", new Vector2(0, -490));
 
-        Button langBtn = MakeButton(optionsPanel.transform, "LanguageButton", new Vector2(460, 90), "Idioma: Español", 30);
+        Button langBtn = MakeButton(optionsPanel.transform, "LanguageButton", new Vector2(480, 96), "Idioma: Español", 32);
         CenterAnchor(langBtn.GetComponent<RectTransform>());
         langBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, -650);
         Text langLabel = langBtn.GetComponentInChildren<Text>();
 
-        Button optionsCloseBtn = MakeButton(optionsPanel.transform, "OptionsCloseButton", new Vector2(240, 80), "Close", 30);
+        Button optionsCloseBtn = MakeButton(optionsPanel.transform, "OptionsCloseButton", new Vector2(250, 84), "Close", 32);
         CenterAnchor(optionsCloseBtn.GetComponent<RectTransform>());
         optionsCloseBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, -840);
 
         // --- Tutorial overlay ---
         GameObject tutorialPanel = MakeOverlayPanel(canvasGO.transform, "TutorialPanel");
-        Text tutorialTitle = MakeText(tutorialPanel.transform, "TutorialTitle", new Vector2(0, -100), TextAnchor.MiddleCenter, 44);
+        Text tutorialTitle = MakeTitleText(tutorialPanel.transform, "TutorialTitle", new Vector2(0, -100), TextAnchor.MiddleCenter, 50);
         AnchorTop(tutorialTitle.rectTransform);
         tutorialTitle.rectTransform.sizeDelta = new Vector2(900, 80);
 
-        Text tutorialBody = MakeText(tutorialPanel.transform, "TutorialBody", new Vector2(0, -260), TextAnchor.UpperCenter, 30);
+        Text tutorialBody = MakeText(tutorialPanel.transform, "TutorialBody", new Vector2(0, -260), TextAnchor.UpperCenter, 34);
         AnchorTop(tutorialBody.rectTransform);
         tutorialBody.rectTransform.sizeDelta = new Vector2(900, 700);
 
-        Text tutorialPageIndex = MakeText(tutorialPanel.transform, "TutorialPageIndex", new Vector2(0, -1080), TextAnchor.MiddleCenter, 26);
+        Text tutorialPageIndex = MakeText(tutorialPanel.transform, "TutorialPageIndex", new Vector2(0, -1080), TextAnchor.MiddleCenter, 28);
         AnchorTop(tutorialPageIndex.rectTransform);
         tutorialPageIndex.color = new Color(1f, 1f, 1f, 0.6f);
 
-        Button tutorialBackBtn = MakeButton(tutorialPanel.transform, "TutorialBackButton", new Vector2(220, 90), "< Back", 30);
+        Button tutorialBackBtn = MakeButton(tutorialPanel.transform, "TutorialBackButton", new Vector2(230, 94), "< Back", 32);
         tutorialBackBtn.GetComponent<RectTransform>().anchorMin = new Vector2(0f, 0f);
         tutorialBackBtn.GetComponent<RectTransform>().anchorMax = new Vector2(0f, 0f);
         tutorialBackBtn.GetComponent<RectTransform>().pivot = new Vector2(0f, 0f);
         tutorialBackBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(40, 260);
 
-        Button tutorialNextBtn = MakeButton(tutorialPanel.transform, "TutorialNextButton", new Vector2(220, 90), "Next >", 30);
+        Button tutorialNextBtn = MakeButton(tutorialPanel.transform, "TutorialNextButton", new Vector2(230, 94), "Next >", 32);
         tutorialNextBtn.GetComponent<RectTransform>().anchorMin = new Vector2(1f, 0f);
         tutorialNextBtn.GetComponent<RectTransform>().anchorMax = new Vector2(1f, 0f);
         tutorialNextBtn.GetComponent<RectTransform>().pivot = new Vector2(1f, 0f);
         tutorialNextBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(-40, 260);
 
-        Button tutorialCloseBtn = MakeButton(tutorialPanel.transform, "TutorialCloseButton", new Vector2(240, 80), "Close", 30);
+        Button tutorialCloseBtn = MakeButton(tutorialPanel.transform, "TutorialCloseButton", new Vector2(250, 84), "Close", 32);
         CenterAnchor(tutorialCloseBtn.GetComponent<RectTransform>());
         tutorialCloseBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, 130);
 
         // --- Store overlay ---
         GameObject storePanel = MakeOverlayPanel(canvasGO.transform, "StorePanel");
-        Text storeTitle = MakeText(storePanel.transform, "StoreTitle", new Vector2(0, -70), TextAnchor.MiddleCenter, 48);
+        Text storeTitle = MakeTitleText(storePanel.transform, "StoreTitle", new Vector2(0, -70), TextAnchor.MiddleCenter, 54);
         AnchorTop(storeTitle.rectTransform);
         storeTitle.text = "Store";
 
-        Text storeBalance = MakeText(storePanel.transform, "StoreBalance", new Vector2(0, -150), TextAnchor.MiddleCenter, 30);
+        Text storeBalance = MakeText(storePanel.transform, "StoreBalance", new Vector2(0, -150), TextAnchor.MiddleCenter, 32);
         AnchorTop(storeBalance.rectTransform);
         storeBalance.color = new Color(1f, 0.85f, 0.4f);
 
-        Text storeMessage = MakeText(storePanel.transform, "StoreMessage", new Vector2(0, -200), TextAnchor.MiddleCenter, 26);
+        Text storeMessage = MakeText(storePanel.transform, "StoreMessage", new Vector2(0, -200), TextAnchor.MiddleCenter, 28);
         AnchorTop(storeMessage.rectTransform);
         storeMessage.color = new Color(0.6f, 1f, 0.6f);
 
         GameObject storeScrollContent = MakeScrollList(storePanel.transform, "StoreScroll",
             new Vector2(0, -260), new Vector2(1000, 1300));
 
-        Button storeCloseBtn = MakeButton(storePanel.transform, "StoreCloseButton", new Vector2(240, 80), "Close", 30);
+        Button storeCloseBtn = MakeButton(storePanel.transform, "StoreCloseButton", new Vector2(250, 84), "Close", 32);
         storeCloseBtn.GetComponent<RectTransform>().anchorMin = new Vector2(0.5f, 0f);
         storeCloseBtn.GetComponent<RectTransform>().anchorMax = new Vector2(0.5f, 0f);
         storeCloseBtn.GetComponent<RectTransform>().pivot = new Vector2(0.5f, 0f);
@@ -277,7 +277,7 @@ public static class BarajaMainMenuSceneBuilder
         Image bg = go.AddComponent<Image>();
         bg.color = new Color(1f, 1f, 1f, 0.06f);
 
-        Text nameText = MakeText(go.transform, "NameText", Vector2.zero, TextAnchor.UpperLeft, 30);
+        Text nameText = MakeTitleText(go.transform, "NameText", Vector2.zero, TextAnchor.UpperLeft, 30);
         nameText.rectTransform.anchorMin = new Vector2(0f, 1f);
         nameText.rectTransform.anchorMax = new Vector2(0f, 1f);
         nameText.rectTransform.pivot = new Vector2(0f, 1f);
@@ -355,18 +355,28 @@ public static class BarajaMainMenuSceneBuilder
         return slider;
     }
 
+    // Body font (Crimson Text) by default - MakeTitleText/MakeButton switch
+    // to the decorative Cinzel Decorative face for headers and button labels,
+    // matching the treatment in BarajaCombatSceneBuilder.
     static Text MakeText(Transform parent, string name, Vector2 pos, TextAnchor anchor, int size)
     {
         GameObject go = new GameObject(name);
         go.transform.SetParent(parent, false);
         Text t = go.AddComponent<Text>();
-        t.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        t.font = BarajaFonts.Body;
         t.fontSize = size;
         t.alignment = anchor;
         t.color = Color.white;
         t.verticalOverflow = VerticalWrapMode.Overflow;
         t.rectTransform.sizeDelta = new Vector2(800, 100);
         t.rectTransform.anchoredPosition = pos;
+        return t;
+    }
+
+    static Text MakeTitleText(Transform parent, string name, Vector2 pos, TextAnchor anchor, int size)
+    {
+        Text t = MakeText(parent, name, pos, anchor, size);
+        t.font = BarajaFonts.Title;
         return t;
     }
 
@@ -380,7 +390,7 @@ public static class BarajaMainMenuSceneBuilder
         Button btn = go.AddComponent<Button>();
         btn.targetGraphic = img;
 
-        Text t = MakeText(go.transform, "Label", Vector2.zero, TextAnchor.MiddleCenter, fontSize);
+        Text t = MakeTitleText(go.transform, "Label", Vector2.zero, TextAnchor.MiddleCenter, fontSize);
         t.rectTransform.anchorMin = Vector2.zero;
         t.rectTransform.anchorMax = Vector2.one;
         t.rectTransform.offsetMin = Vector2.zero;

@@ -518,6 +518,43 @@ is now the standard for all 18 cards, not just this one - the same
 script applies directly to each of the other 6 enemy portraits and the
 remaining suits once their art is ready.
 
+## Round 17: all 7 enemy cards, generalized pipeline
+
+Generalized the single-card script into `build_all_enemy_cards.py`
+(one CARDS list entry per enemy: art file, name, rules text pulled
+straight from ENEMIES.md's real HP/pattern data, and a suit badge for
+the bottom medallion). Corner number matches each enemy's actual fight
+order from ENEMIES.md (1, 2, 4, 5, 7, 8, B for boss) rather than a
+placeholder. Output goes to `design/cards/`.
+
+**Medallion badge now swaps per card** rather than always showing
+Catrina's baked-in purple skull: `swap_medallion_skull()` clears the
+socket circle (measured center/radius on the production frame) and
+drops in each card's own suit skull with a matching drop shadow, same
+technique as the original medallion build.
+
+**First pass reintroduced the round-13 corner sliver** (the gap between
+the art panel's right edge and the outer border) - the `x=600` extension
+fixed on Catrina Menor's card specifically hadn't been carried into the
+generalized eligible_rects. Fixed the same way, in the shared script
+this time so it applies to every card automatically.
+
+**Then Dave caught it going deeper: the character PNGs' own backgrounds
+aren't pure black** (measured 4-11 per channel at the corners, varying
+per image - Perro Xolo and Guardián de Ofrenda were the most visibly
+off). This isn't a compositing issue, it's in the source art files
+themselves. Fixed with a dedicated cleaning pass
+(`design/cards_source_clean/`): any pixel with max(R,G,B) < 25 gets
+forced to true (0,0,0), safely below any real character color/detail.
+The card-building script now reads from this cleaned folder instead of
+ArtEngine's raw output. Catrina Menor's card was folded into the same
+unified CARDS list and rebuilt too, superseding the individually-built
+version from earlier rounds.
+
+Canonical: `design/cards/*.png` (all 7), `design/cards_source_clean/*.png`
+(the cleaned source art, reusable for any future rebuild),
+`build_all_enemy_cards.py` is the reference script for the technique.
+
 **Final cleanup:** the working background fill was `(12, 8, 16)`, a
 close-but-not-exact approximation of black, fine for a mockup but not
 for the production template. Changed to true `(0, 0, 0)` everywhere it's

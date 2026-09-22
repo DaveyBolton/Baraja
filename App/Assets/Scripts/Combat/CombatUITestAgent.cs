@@ -344,9 +344,27 @@ namespace Baraja.Combat
         // Every card in hand is raycastable now - there's no "focused" card
         // to single out anymore, so this is just "the first one," used
         // where the test only needs *some* real card to poke at.
+        // Child index 0 used to always be the leftmost, on-screen card
+        // because the hand always started scrolled fully left. It no
+        // longer is - the hand now starts scrolled to its horizontal
+        // center, so card 0 can be masked off-screen to the left. Pick
+        // whichever card is actually inside the ScrollRect's Viewport right
+        // now, so the "raycast the card's own position" test below stays
+        // valid regardless of scroll position.
         private static Transform FindFirstCard(CombatUI ui)
         {
-            return ui.HandContainer.childCount > 0 ? ui.HandContainer.GetChild(0) : null;
+            if (ui.HandContainer.childCount == 0) return null;
+            RectTransform viewport = ui.HandScrollRect != null ? ui.HandScrollRect.viewport : null;
+            if (viewport != null)
+            {
+                foreach (Transform child in ui.HandContainer)
+                {
+                    Vector2 screenPos = RectTransformUtility.WorldToScreenPoint(null, child.position);
+                    if (RectTransformUtility.RectangleContainsScreenPoint(viewport, screenPos, null))
+                        return child;
+                }
+            }
+            return ui.HandContainer.GetChild(0); // fallback: no ScrollRect, or somehow nothing visible
         }
 
         // The first card that's actually affordable right now (CardHandEntry

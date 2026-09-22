@@ -727,6 +727,11 @@ public static class BarajaCombatSceneBuilder
         go.transform.SetParent(parent, false);
         RawImage img = go.AddComponent<RawImage>();
         img.texture = AssetDatabase.LoadAssetAtPath<Texture2D>(texturePath);
+        // Purely a scroll hint, not a button - it sits directly over
+        // whichever hand card is currently peeking in at that edge, and
+        // without this a real tap there (or an automated test's raycast)
+        // would hit the arrow instead of the card underneath it.
+        img.raycastTarget = false;
         RectTransform rt = img.rectTransform;
         rt.anchorMin = anchor;
         rt.anchorMax = anchor;

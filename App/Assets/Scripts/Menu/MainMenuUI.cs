@@ -23,6 +23,11 @@ namespace Baraja.Menu
         [HideInInspector] public Button LanguageButton;
         [HideInInspector] public Text LanguageButtonLabel;
 
+        [HideInInspector] public Text OptionsTitleText;
+        [HideInInspector] public Text FxLabelText;
+        [HideInInspector] public Text MusicLabelText;
+        [HideInInspector] public Text StoreTitleText;
+
         [HideInInspector] public Transform StoreListContainer;
         [HideInInspector] public GameObject StoreRowPrefab;
         [HideInInspector] public Text StoreBalanceText;
@@ -62,18 +67,21 @@ namespace Baraja.Menu
 
         private void RefreshLanguageLabel()
         {
-            // Just the language name, not "Idioma: Español" / "Language:
-            // English" - those were by far the longest labels in the game
-            // and would have forced every other gem button to match their
-            // width. Context (sitting right below the volume sliders) is
-            // enough to explain what the button does.
-            LanguageButtonLabel.text = GameSettings.Spanish ? "Español" : "English";
+            // Shows the language you'd SWITCH TO, not the current one -
+            // showing the current language ("English" while already in
+            // English) reads as a toggle that undoes itself: tapping your
+            // own current language to confirm it instead flips you into
+            // the other one, which looks broken even though it isn't.
+            LanguageButtonLabel.text = GameSettings.Spanish ? "English" : "Español";
         }
 
-        // Every static button label in the menu, translated - these were
-        // English-only regardless of the language toggle even though every
-        // other piece of text (names, descriptions) already switches with
-        // GameSettings.Spanish.
+        // Every static button label AND plain heading/field-label in the
+        // menu, translated - these were English-only regardless of the
+        // language toggle even though every other piece of text (names,
+        // descriptions) already switches with GameSettings.Spanish. That
+        // was the actual bug behind "I click English and it stays in
+        // Spanish": the toggle itself worked, these just never followed it,
+        // so it looked broken even when it wasn't.
         private void RefreshButtonLabels()
         {
             bool es = GameSettings.Spanish;
@@ -82,6 +90,11 @@ namespace Baraja.Menu
             StoreButton.GetComponentInChildren<Text>().text = es ? "Tienda" : "Store";
             OptionsCloseButton.GetComponentInChildren<Text>().text = es ? "Cerrar" : "Close";
             StoreCloseButton.GetComponentInChildren<Text>().text = es ? "Cerrar" : "Close";
+
+            OptionsTitleText.text = es ? "Opciones" : "Options";
+            FxLabelText.text = es ? "Volumen de Efectos" : "FX Volume";
+            MusicLabelText.text = es ? "Volumen de Música" : "Music Volume";
+            StoreTitleText.text = es ? "Tienda" : "Store";
         }
 
         private void OpenStore()

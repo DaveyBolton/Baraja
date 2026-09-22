@@ -27,6 +27,22 @@ namespace Baraja.Combat
         public event Action<string> OnLog;
         public event Action<bool> OnCombatEnded; // true = player won
 
+        // Structured (not string) damage/block events, purely for visual
+        // feedback (floating numbers, hit flashes) - OnLog already
+        // describes what happened in text, but a player watching the
+        // board has no way to connect "a card disappeared" to "something
+        // happened" without something landing ON the thing that got hit.
+        public event Action<EnemyCombatant, int> OnEnemyDamaged;
+        public event Action<int> OnPlayerDamaged;
+        public event Action<EnemyCombatant, int> OnEnemyBlocked;
+        public event Action<int> OnPlayerBlocked;
+
+        // Fired once per enemy per turn, right as their telegraphed intent
+        // starts resolving - lets CombatUI show an actual "card" for
+        // what the enemy just did (see CombatUI.EnemyMoveArt), instead of
+        // only the HP/block numbers changing silently.
+        public event Action<EnemyCombatant, IntentKind> OnEnemyMovePlayed;
+
         private bool _combatOver;
 
         public void StartEncounter(int fightNumber)
@@ -46,7 +62,8 @@ namespace Baraja.Combat
                 .ToList();
             _combatOver = false;
 
-            Log(encounter.IsBoss ? "La Catrina appears." : $"Fight {fightNumber} begins.");
+            if (Spanish) Log(encounter.IsBoss ? "La Catrina aparece." : $"Combate {fightNumber} comienza.");
+            else Log(encounter.IsBoss ? "La Catrina appears." : $"Fight {fightNumber} begins.");
             BeginPlayerTurn();
         }
 
@@ -55,7 +72,11 @@ namespace Baraja.Combat
             if (_combatOver) return;
 
             Player.Energy = StartingEnergy + Player.EnergyPerTurnBonus;
-            if (Player.BlockPerTurnBonus > 0) Player.GainBlock(Player.BlockPerTurnBonus);
+            if (Player.BlockPerTurnBonus > 0)
+            {
+                Player.GainBlock(Player.BlockPerTurnBonus);
+                OnPlayerBlocked?.Invoke(Player.BlockPerTurnBonus);
+            }
             PlayerDeck.DrawToHand(HandSize);
             Notify();
         }
@@ -123,15 +144,18 @@ namespace Baraja.Combat
 
                 case EffectType.GainBlock:
                     Player.GainBlock(card.Amount);
+                    OnPlayerBlocked?.Invoke(card.Amount);
                     break;
 
                 case EffectType.GainBlockUntargetable:
                     Player.GainBlock(card.Amount);
+                    OnPlayerBlocked?.Invoke(card.Amount);
                     Player.Status.SetFlag(StatusType.Untargetable);
                     break;
 
                 case EffectType.GainBlockDraw:
                     Player.GainBlock(card.Amount);
+                    OnPlayerBlocked?.Invoke(card.Amount);
                     PlayerDeck.DrawToHand(card.Amount2);
                     break;
 
@@ -141,6 +165,7 @@ namespace Baraja.Combat
 
                 case EffectType.GainBlockRemoveDebuff:
                     Player.GainBlock(card.Amount);
+                    OnPlayerBlocked?.Invoke(card.Amount);
                     Player.Status.ClearAllDebuffs();
                     break;
 
@@ -178,7 +203,7 @@ namespace Baraja.Combat
         {
             int roll = UnityEngine.Random.Range(0, 3);
             if (roll == 0 && target != null) DamageEnemy(target, card.Amount, CardName(card));
-            else if (roll == 1) Player.GainBlock(card.Amount2);
+            else if (roll == 1) { Player.GainBlock(card.Amount2); OnPlayerBlocked?.Invoke(card.Amount2); }
             else PlayerDeck.DrawToHand(card.Amount3);
         }
 
@@ -187,7 +212,8 @@ namespace Baraja.Combat
             if (enemy == null || enemy.IsDead) return;
             int dealt = Player.ModifyOutgoingDamage(rawDamage);
             enemy.TakeDamage(dealt);
-            Log($"{source} hits {EnemyName(enemy)} for {dealt}.");
+            Log(Spanish ? $"{source} golpea a {EnemyName(enemy)} por {dealt}." : $"{source} hits {EnemyName(enemy)} for {dealt}.");
+            OnEnemyDamaged?.Invoke(enemy, dealt);
         }
 
         private string CardName(CardData card) => card.DisplayName(Spanish);
@@ -228,14 +254,19 @@ namespace Baraja.Combat
                 if (burnDmg > 0)
                 {
                     enemy.TakeDamage(burnDmg);
-                    Log($"{EnemyName(enemy)} burns for {burnDmg}.");
+                    Log(Spanish ? $"{EnemyName(enemy)} se quema por {burnDmg}." : $"{EnemyName(enemy)} burns for {burnDmg}.");
+                    OnEnemyDamaged?.Invoke(enemy, burnDmg);
                 }
 
                 if (CheckForVictory()) return;
             }
 
             int playerBurnDmg = Player.Status.TickBurn();
-            if (playerBurnDmg > 0) Player.TakeDamage(playerBurnDmg);
+            if (playerBurnDmg > 0)
+            {
+                Player.TakeDamage(playerBurnDmg);
+                OnPlayerDamaged?.Invoke(playerBurnDmg);
+            }
 
             if (Player.IsDead)
             {
@@ -248,6 +279,7 @@ namespace Baraja.Combat
 
         private void ResolveEnemyStep(EnemyCombatant enemy, IntentStep step, bool playerUntargetable)
         {
+            OnEnemyMovePlayed?.Invoke(enemy, step.Kind);
             switch (step.Kind)
             {
                 case IntentKind.Attack:
@@ -269,6 +301,7 @@ namespace Baraja.Combat
 
                 case IntentKind.BlockSelf:
                     enemy.GainBlock(step.Amount);
+                    OnEnemyBlocked?.Invoke(enemy, step.Amount);
                     break;
 
                 case IntentKind.BuffSelfDamage:
@@ -282,19 +315,23 @@ namespace Baraja.Combat
             if (playerUntargetable)
             {
                 string gravestName = CardName(CardDatabase.ById("tumba_sellada"));
-                Log($"{EnemyName(enemy)}'s attack finds no target ({gravestName}).");
+                Log(Spanish
+                    ? $"El ataque de {EnemyName(enemy)} no encuentra objetivo ({gravestName})."
+                    : $"{EnemyName(enemy)}'s attack finds no target ({gravestName}).");
                 return;
             }
 
             int dealt = enemy.ModifyOutgoingDamage(rawDamage);
             Player.TakeDamage(dealt);
-            Log($"{EnemyName(enemy)} hits you for {dealt}.");
+            Log(Spanish ? $"{EnemyName(enemy)} te golpea por {dealt}." : $"{EnemyName(enemy)} hits you for {dealt}.");
+            OnPlayerDamaged?.Invoke(dealt);
 
             if (Player.ReflectAmount > 0)
             {
                 enemy.TakeDamage(Player.ReflectAmount);
                 string crownName = CardName(CardDatabase.ById("corona_de_espinas"));
-                Log($"{crownName} reflects {Player.ReflectAmount} back.");
+                Log(Spanish ? $"{crownName} refleja {Player.ReflectAmount} de vuelta." : $"{crownName} reflects {Player.ReflectAmount} back.");
+                OnEnemyDamaged?.Invoke(enemy, Player.ReflectAmount);
             }
         }
 
@@ -314,7 +351,7 @@ namespace Baraja.Combat
         private void EndCombat(bool won)
         {
             _combatOver = true;
-            Log(won ? "Victory." : "Defeat.");
+            Log(Spanish ? (won ? "¡Victoria!" : "Derrota.") : (won ? "Victory." : "Defeat."));
             Notify();
             OnCombatEnded?.Invoke(won);
         }

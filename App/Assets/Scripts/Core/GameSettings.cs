@@ -24,10 +24,10 @@ namespace Baraja.Core
             set => PlayerPrefs.SetFloat(MusicKey, value);
         }
 
-        // true = Spanish (the project's default language), false = English.
+        // true = Spanish, false = English (the project's default language).
         public static bool Spanish
         {
-            get => PlayerPrefs.GetInt(SpanishKey, 1) != 0;
+            get => PlayerPrefs.GetInt(SpanishKey, 0) != 0;
             set => PlayerPrefs.SetInt(SpanishKey, value ? 1 : 0);
         }
     }

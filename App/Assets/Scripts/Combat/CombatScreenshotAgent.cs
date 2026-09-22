@@ -39,7 +39,30 @@ namespace Baraja.Combat
             _shotDir = System.IO.Path.Combine(
                 System.IO.Directory.GetParent(Application.dataPath).FullName, "Shots");
             System.IO.Directory.CreateDirectory(_shotDir);
-            StartCoroutine(HandleTutorialThenPlay());
+            StartCoroutine(Run());
+        }
+
+        private IEnumerator Run()
+        {
+            // The full player boots Splash -> MainMenu -> Combat (only
+            // reachable via Play) - force straight into Combat rather than
+            // relying on that natural progression, same fix as
+            // CarouselJitterTestAgent. A short wait first: SplashScreenshotAgent
+            // (also installed on this same -srshots flag) needs a moment to
+            // capture AND for ScreenCapture.CaptureScreenshot's deferred
+            // disk write to actually flush before this yanks the scene out
+            // from under it - jumping immediately raced that write and the
+            // splash "screenshot" ended up showing combat instead.
+            if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name != "Combat")
+            {
+                yield return new WaitForSeconds(1.5f);
+                UnityEngine.SceneManagement.SceneManager.LoadScene("Combat");
+                while (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name != "Combat") yield return null;
+                yield return null;
+                yield return null;
+            }
+
+            yield return HandleTutorialThenPlay();
         }
 
         // The first-time tutorial banner (CombatTutorialHint) blocks the board

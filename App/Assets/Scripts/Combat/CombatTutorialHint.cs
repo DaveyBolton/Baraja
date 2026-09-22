@@ -22,6 +22,7 @@ namespace Baraja.Combat
         [HideInInspector] public Text BackButtonLabel;
         [HideInInspector] public Button NextButton;
         [HideInInspector] public Text NextButtonLabel;
+        [HideInInspector] public Button CloseButton;
 
         private int _pageIndex;
 
@@ -29,6 +30,7 @@ namespace Baraja.Combat
         {
             BackButton.onClick.AddListener(() => ChangePage(-1));
             NextButton.onClick.AddListener(OnNextClicked);
+            CloseButton.onClick.AddListener(Dismiss);
         }
 
         private void Start()

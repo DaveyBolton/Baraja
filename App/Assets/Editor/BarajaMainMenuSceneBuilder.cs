@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using Baraja.Menu;
+using Baraja.Core;
 
 /// <summary>
 /// One-shot scene assembler for the main menu, run via:
@@ -43,7 +44,37 @@ public static class BarajaMainMenuSceneBuilder
         CanvasScaler scaler = canvasGO.AddComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1080, 1920);
+        // Match height, not width - see BarajaCombatSceneBuilder for why:
+        // matching width shrinks the canvas's effective height whenever the
+        // runtime window isn't exactly 9:16, which can balloon bottom/top
+        // anchored elements past their intended footprint.
+        scaler.matchWidthOrHeight = 1f;
         canvasGO.AddComponent<GraphicRaycaster>();
+
+        // --- Backdrop: same marigold-path art the combat board and the
+        // Options/Store overlays use, so the title screen isn't the only
+        // flat-color screen left in the game. First child so everything
+        // else (title, nav buttons) draws on top of it. ---
+        GameObject backdropGO = new GameObject("Backdrop");
+        backdropGO.transform.SetParent(canvasGO.transform, false);
+        RawImage backdrop = backdropGO.AddComponent<RawImage>();
+        backdrop.texture = Resources.Load<Texture2D>("Art/Backdrops/zone1_marigold_path");
+        RectTransform backdropRT = backdrop.rectTransform;
+        backdropRT.anchorMin = Vector2.zero;
+        backdropRT.anchorMax = Vector2.one;
+        backdropRT.offsetMin = Vector2.zero;
+        backdropRT.offsetMax = Vector2.zero;
+
+        GameObject backdropTintGO = new GameObject("BackdropTint");
+        backdropTintGO.transform.SetParent(canvasGO.transform, false);
+        Image backdropTint = backdropTintGO.AddComponent<Image>();
+        backdropTint.color = new Color(0.03f, 0.02f, 0.05f, 0.55f);
+        backdropTint.raycastTarget = false;
+        RectTransform backdropTintRT = backdropTint.rectTransform;
+        backdropTintRT.anchorMin = Vector2.zero;
+        backdropTintRT.anchorMax = Vector2.one;
+        backdropTintRT.offsetMin = Vector2.zero;
+        backdropTintRT.offsetMax = Vector2.zero;
 
         // --- Title panel: always visible underneath whichever overlay is open ---
         Text title = MakeTitleText(canvasGO.transform, "TitleText", new Vector2(0, -260), TextAnchor.MiddleCenter, 72);
@@ -103,6 +134,10 @@ public static class BarajaMainMenuSceneBuilder
         // be computed the same way instead of mixing two coordinate systems.
         float panelButtonHeight = StandardButtonWidth / BarajaGemButtons.Aspect;
 
+        // Wired into MainMenuUI so Options title/FX/Music labels and the
+        // Store title translate when the language toggles too - these used
+        // to be hardcoded English forever, which is what made the language
+        // toggle look broken (other things switched, these never did).
         Button langBtn = MakeButton(optionsPanel.transform, "LanguageButton", StandardButtonWidth, "Español", StandardButtonFontSize, GemColor.Rainbow);
         AnchorTop(langBtn.GetComponent<RectTransform>());
         langBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, -590);
@@ -157,6 +192,11 @@ public static class BarajaMainMenuSceneBuilder
         ui.LanguageButton = langBtn;
         ui.LanguageButtonLabel = langLabel;
 
+        ui.OptionsTitleText = optionsTitle;
+        ui.FxLabelText = fxLabel;
+        ui.MusicLabelText = musicLabel;
+        ui.StoreTitleText = storeTitle;
+
         ui.StoreListContainer = storeScrollContent.transform;
         ui.StoreRowPrefab = storeRowPrefab;
         ui.StoreBalanceText = storeBalance;
@@ -175,13 +215,34 @@ public static class BarajaMainMenuSceneBuilder
     {
         GameObject go = new GameObject(name);
         go.transform.SetParent(parent, false);
-        Image img = go.AddComponent<Image>();
-        img.color = new Color(0.03f, 0.02f, 0.05f, 0.97f);
-        RectTransform rt = img.rectTransform;
-        rt.anchorMin = Vector2.zero;
-        rt.anchorMax = Vector2.one;
-        rt.offsetMin = Vector2.zero;
-        rt.offsetMax = Vector2.zero;
+
+        // Same marigold-path art the combat board uses, so Options/Store
+        // don't look like a flat black modal dropped on top of the game.
+        // Also doubles as the modal's click-blocker (raycastTarget stays
+        // true by default), same job the old solid Image did.
+        RawImage backdrop = go.AddComponent<RawImage>();
+        backdrop.texture = Resources.Load<Texture2D>("Art/Backdrops/zone1_marigold_path");
+        RectTransform backdropRT = backdrop.rectTransform;
+        backdropRT.anchorMin = Vector2.zero;
+        backdropRT.anchorMax = Vector2.one;
+        backdropRT.offsetMin = Vector2.zero;
+        backdropRT.offsetMax = Vector2.zero;
+
+        // Dark tint alpha-blended on top of the photo (not multiplied into
+        // it) so labels/sliders stay legible no matter how bright any given
+        // patch of the backdrop is - same approach as the combat tutorial
+        // hint banner's own background.
+        GameObject tintGO = new GameObject("Tint");
+        tintGO.transform.SetParent(go.transform, false);
+        Image tint = tintGO.AddComponent<Image>();
+        tint.color = new Color(0.03f, 0.02f, 0.05f, 0.7f);
+        tint.raycastTarget = false;
+        RectTransform tintRT = tint.rectTransform;
+        tintRT.anchorMin = Vector2.zero;
+        tintRT.anchorMax = Vector2.one;
+        tintRT.offsetMin = Vector2.zero;
+        tintRT.offsetMax = Vector2.zero;
+
         return go;
     }
 
@@ -247,8 +308,13 @@ public static class BarajaMainMenuSceneBuilder
     // way around (960x229, not 960x160).
     static GameObject MakeStoreRowPrefab(Transform parent)
     {
+        // Taller than the stone's own natural aspect (960x229) would give -
+        // that height forced Name/Description to share a horizontal band
+        // with Price+Buy, capping every font at a small size to avoid
+        // collisions. Name and Description now each get the row's full
+        // width on their own line; only Price+Buy share the bottom line.
         const float rowWidth = 960f;
-        float rowHeight = rowWidth * 229f / 960f; // panel_stone.png's own measured aspect
+        const float rowHeight = 300f;
 
         GameObject go = new GameObject("StoreRowPrefab");
         go.transform.SetParent(parent, false);
@@ -263,69 +329,101 @@ public static class BarajaMainMenuSceneBuilder
         RawImage bg = go.AddComponent<RawImage>();
         bg.texture = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Art/Panels/panel_stone.png");
 
-        // Text is dark now (was white/amber, tuned for the old near-black
-        // tint) since it has to read against light grey stone instead.
-        // Name+Desc are vertically centered as a block on the row's own
-        // center (matching the Buy button's centering) rather than pinned
-        // near the top, which left the bottom ~40% of the slab as dead
-        // empty space and read as unbalanced.
-        Color darkText = new Color(0.16f, 0.15f, 0.15f);
+        // Dark text straight on the mottled stone texture read as if it were
+        // CARVED INTO the graphic rather than a separate UI text layer
+        // floating on top of it. A flat rectangular plate behind it fixed
+        // legibility but its own hard edge showed up as a visible box seam
+        // against the stone - swapped for the same trick the rest of this
+        // game already uses to float text over busy art (button labels,
+        // the tutorial hint's close X): a black outline halo around the
+        // glyphs themselves, no separate background shape at all.
+        Color plateText = new Color(0.96f, 0.93f, 0.85f);
 
-        // Name/Desc get their own column (x:50-460) strictly separate from
-        // the Price column (x:470-660) and Buy (x:680-910) - Best Fit auto-
-        // shrinks only the names/descriptions long enough to need it
-        // ("Reverso Catrina Arcoíris" etc.) instead of one hand-picked size
-        // that either overflows on the longest string or is needlessly
-        // small on every shorter one.
-        Text nameText = MakeTitleText(go.transform, "NameText", Vector2.zero, TextAnchor.MiddleLeft, 38);
-        nameText.color = darkText;
-        nameText.horizontalOverflow = HorizontalWrapMode.Overflow; // force single line so Best Fit shrinks the font instead of wrapping to a second line
+        // Name and Description each get the row's FULL width on their own
+        // line - measured against the longest strings in the catalog
+        // ("Reverso Catrina Arcoíris", "Elimina todos los anuncios para
+        // siempre.") at 860px available width, size 40/32 clear with a lot
+        // of margin (worst case measured 628px/544px). Still Best Fit as a
+        // safety net, not as the primary sizing mechanism - only true
+        // outliers would ever need to shrink now.
+        Text nameText = MakeTitleText(go.transform, "NameText", Vector2.zero, TextAnchor.UpperLeft, 40);
+        nameText.color = plateText;
+        nameText.horizontalOverflow = HorizontalWrapMode.Overflow;
         nameText.resizeTextForBestFit = true;
-        nameText.resizeTextMinSize = 20;
-        nameText.resizeTextMaxSize = 38;
-        nameText.rectTransform.anchorMin = new Vector2(0f, 0.5f);
-        nameText.rectTransform.anchorMax = new Vector2(0f, 0.5f);
-        nameText.rectTransform.pivot = new Vector2(0f, 0.5f);
-        nameText.rectTransform.anchoredPosition = new Vector2(50, 28);
-        nameText.rectTransform.sizeDelta = new Vector2(410, 50);
+        nameText.resizeTextMinSize = 24;
+        nameText.resizeTextMaxSize = 40;
+        nameText.rectTransform.anchorMin = new Vector2(0f, 1f);
+        nameText.rectTransform.anchorMax = new Vector2(0f, 1f);
+        nameText.rectTransform.pivot = new Vector2(0f, 1f);
+        // panel_stone.png is a 960x229 texture stretched to fill this
+        // 960x300 row (its RawImage IS the row's own RectTransform, no
+        // separate child) - that's a 1.31x vertical stretch, and its own
+        // carved/vine border occupies the top ~40px of the SOURCE image
+        // (measured by sampling pixel color down the center column: it
+        // doesn't settle into flat stone until y~40), which becomes ~52px
+        // after the stretch. -24 put the name text's own top edge, plus
+        // CinzelDecorative-Bold's ascenders/accents (É in "PÉTALOS"),
+        // squarely on top of that carved border - visibly clipped by it.
+        // Pushed below the safe ~52px line with margin for the glyph
+        // overshoot.
+        nameText.rectTransform.anchoredPosition = new Vector2(50, -66);
+        nameText.rectTransform.sizeDelta = new Vector2(860, 54);
+        nameText.GetComponent<MinScreenFontSize>().MinPixelSize = 32f;
+        Outline nameOutline = nameText.gameObject.AddComponent<Outline>();
+        nameOutline.effectColor = new Color(0f, 0f, 0f, 0.85f);
+        nameOutline.effectDistance = new Vector2(2f, -2f);
 
-        Text descText = MakeText(go.transform, "DescText", Vector2.zero, TextAnchor.MiddleLeft, 34);
-        descText.color = new Color(0.3f, 0.28f, 0.28f);
+        Text descText = MakeText(go.transform, "DescText", Vector2.zero, TextAnchor.UpperLeft, 32);
+        descText.color = new Color(plateText.r, plateText.g, plateText.b, 0.85f);
         descText.horizontalOverflow = HorizontalWrapMode.Overflow;
         descText.resizeTextForBestFit = true;
-        descText.resizeTextMinSize = 18;
-        descText.resizeTextMaxSize = 34;
-        descText.rectTransform.anchorMin = new Vector2(0f, 0.5f);
-        descText.rectTransform.anchorMax = new Vector2(0f, 0.5f);
-        descText.rectTransform.pivot = new Vector2(0f, 0.5f);
-        descText.rectTransform.anchoredPosition = new Vector2(50, -32);
-        descText.rectTransform.sizeDelta = new Vector2(410, 42);
+        descText.resizeTextMinSize = 20;
+        descText.resizeTextMaxSize = 32;
+        descText.rectTransform.anchorMin = new Vector2(0f, 1f);
+        descText.rectTransform.anchorMax = new Vector2(0f, 1f);
+        descText.rectTransform.pivot = new Vector2(0f, 1f);
+        // Kept the same 62px gap below the (now lower) name line.
+        descText.rectTransform.anchoredPosition = new Vector2(50, -128);
+        descText.rectTransform.sizeDelta = new Vector2(860, 48);
+        Outline descOutline = descText.gameObject.AddComponent<Outline>();
+        descOutline.effectColor = new Color(0f, 0f, 0f, 0.75f);
+        descOutline.effectDistance = new Vector2(1.5f, -1.5f);
 
-        // Price sits immediately left of the Buy gem, paired with it on the
-        // same vertical center - the old above-the-gem placement read as
-        // "lost" (too small/low-contrast against the stone, easy to miss
-        // next to the much bigger gem). White instead of amber for contrast
-        // against the mid-grey stone.
-        Text priceText = MakeText(go.transform, "PriceText", Vector2.zero, TextAnchor.MiddleRight, 30);
+        // Bottom line: Price (left of the gem, white) + Buy, both centered
+        // on the same row so they read as a pair without competing with
+        // Name/Description above for width anymore.
+        // Price+Buy read as pinned to the row's bottom edge when centered
+        // only within the leftover strip below Description - the row's
+        // description text is always short enough that it never actually
+        // reaches this far right (worst case measured ~544px against 860
+        // available), so there's no real collision risk in centering this
+        // pair on the FULL row height (150 = half of the 300-tall row)
+        // instead - reads as centered on the plate's right side, which is
+        // what it's actually sitting next to.
+        const float rightColumnCenterY = 150f;
+
+        Text priceText = MakeText(go.transform, "PriceText", Vector2.zero, TextAnchor.MiddleRight, 34);
         priceText.horizontalOverflow = HorizontalWrapMode.Overflow;
         priceText.resizeTextForBestFit = true;
-        priceText.resizeTextMinSize = 18;
-        priceText.resizeTextMaxSize = 30;
-        priceText.rectTransform.anchorMin = new Vector2(1f, 0.5f);
-        priceText.rectTransform.anchorMax = new Vector2(1f, 0.5f);
-        priceText.rectTransform.pivot = new Vector2(1f, 0.5f);
-        priceText.rectTransform.anchoredPosition = new Vector2(-300, 0);
-        priceText.rectTransform.sizeDelta = new Vector2(190, 40);
+        priceText.resizeTextMinSize = 20;
+        priceText.resizeTextMaxSize = 34;
+        priceText.rectTransform.anchorMin = new Vector2(1f, 0f);
+        priceText.rectTransform.anchorMax = new Vector2(1f, 0f);
+        priceText.rectTransform.pivot = new Vector2(1f, 0f);
+        priceText.rectTransform.sizeDelta = new Vector2(190, 48);
+        priceText.rectTransform.anchoredPosition = new Vector2(-300, rightColumnCenterY - priceText.rectTransform.sizeDelta.y / 2f);
         priceText.color = Color.white;
+        priceText.GetComponent<MinScreenFontSize>().MinPixelSize = 30f;
 
-        // Diamond white, bigger, and centered on the row's own vertical
-        // middle (not paired below the price text) - a real "buy" action
-        // reads better sitting on its own than sharing a stack with price.
+        // Diamond white, bigger, and centered (with Price) on the row's
+        // full vertical middle - see rightColumnCenterY above.
         Button buyBtn = MakeButton(go.transform, "BuyButton", 230f, "Buy", 26, GemColor.Silver);
-        buyBtn.GetComponent<RectTransform>().anchorMin = new Vector2(1f, 0.5f);
-        buyBtn.GetComponent<RectTransform>().anchorMax = new Vector2(1f, 0.5f);
-        buyBtn.GetComponent<RectTransform>().pivot = new Vector2(1f, 0.5f);
-        buyBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(-50, 0);
+        RectTransform buyBtnRT = buyBtn.GetComponent<RectTransform>();
+        buyBtnRT.anchorMin = new Vector2(1f, 0f);
+        buyBtnRT.anchorMax = new Vector2(1f, 0f);
+        buyBtnRT.pivot = new Vector2(1f, 0f);
+        float buyBtnHeight = 230f / BarajaGemButtons.Aspect;
+        buyBtnRT.anchoredPosition = new Vector2(-50, rightColumnCenterY - buyBtnHeight / 2f);
 
         go.SetActive(false);
         return go;
@@ -391,6 +489,11 @@ public static class BarajaMainMenuSceneBuilder
         t.verticalOverflow = VerticalWrapMode.Overflow;
         t.rectTransform.sizeDelta = new Vector2(800, 100);
         t.rectTransform.anchoredPosition = pos;
+        // Default legibility floor - see MinScreenFontSize (BarajaCombatSceneBuilder
+        // uses the same helper pattern). Handles resizeTextForBestFit fields
+        // (store name/desc/price) by raising their min/max bounds instead of
+        // fontSize directly, since BestFit ignores fontSize once enabled.
+        go.AddComponent<MinScreenFontSize>().MinPixelSize = 28f;
         return t;
     }
 

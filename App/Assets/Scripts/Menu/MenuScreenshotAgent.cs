@@ -39,12 +39,25 @@ namespace Baraja.Menu
 
         private IEnumerator RunSequence()
         {
+            // The full game now boots into a 5s Splash scene before
+            // MainMenu loads (see Baraja.Core.SplashScreen) - poll for a
+            // few seconds instead of checking once immediately, or this
+            // agent gives up before MainMenu ever appears.
+            MainMenuUI ui = null;
+            float waited = 0f;
+            while (ui == null && waited < 8f)
+            {
+                ui = FindObjectOfType<MainMenuUI>();
+                if (ui != null) break;
+                yield return null;
+                waited += Time.unscaledDeltaTime;
+            }
+
             // Both screenshot agents install on -srshots regardless of which
             // single-scene test build is running (Assembly-CSharp has every
             // script regardless of which scene a given build includes), so
             // this one quietly stands down rather than quitting the whole
             // process when it's not the combat build's agent that's active.
-            var ui = FindObjectOfType<MainMenuUI>();
             if (ui == null) yield break;
 
             // ScreenCapture.CaptureScreenshot defers its actual disk write past

@@ -77,20 +77,20 @@ public static class BarajaMainMenuSceneBuilder
         backdropTintRT.offsetMax = Vector2.zero;
 
         // --- Title panel: always visible underneath whichever overlay is
-        // open. Three lines - "Baraja / de los / Muertos" - back at the top
-        // of the screen (Dave: "leave the title at the top"), 50% bigger
-        // than the original single-line size (72pt -> 108pt, box scaled the
-        // same 1.5x). The three nav buttons below it are then spaced
-        // EVENLY across whatever vertical room is left underneath it,
-        // rather than stacked with a fixed small gap - see the space-evenly
-        // math below.
-        const int titleFontSize = 108; // was 72, x1.5
-        const float titleTopMargin = 80f;
-        const float titleHeight = 495f; // was 330 (3 lines at 72pt), x1.5
+        // open. Matches BarajaSplashSceneBuilder's own title treatment
+        // exactly now (Dave: "do the title on the menu page the same as the
+        // splash page") - one line, same 84pt size, same box/margin, same
+        // default white - rather than the menu having its own bigger
+        // 3-line style. The nav buttons below it are spaced EVENLY across
+        // whatever vertical room is left underneath it, rather than
+        // stacked with a fixed small gap - see the space-evenly math below.
+        const int titleFontSize = 84; // matches BarajaSplashSceneBuilder's TitleText
+        const float titleTopMargin = 160f; // matches the splash screen's title offset
+        const float titleHeight = 260f; // matches the splash screen's title box
         Text title = MakeTitleText(canvasGO.transform, "TitleText", new Vector2(0, -titleTopMargin), TextAnchor.MiddleCenter, titleFontSize);
         AnchorTop(title.rectTransform);
-        title.rectTransform.sizeDelta = new Vector2(1020, titleHeight);
-        title.text = "Baraja\nde los\nMuertos";
+        title.rectTransform.sizeDelta = new Vector2(1000, titleHeight);
+        title.text = "Baraja de los Muertos";
 
         // Vertical spacing between stacked gem buttons has to be derived from
         // the gem's own height, not a leftover offset sized for the old flat

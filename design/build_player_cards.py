@@ -42,8 +42,8 @@ BODY_LINE_GAP = 8
 
 # Cost gem socket, top-left corner (measured on FRAME_PATH by isolating the
 # gem's purple facet color from the surrounding gold).
-COST_CX, COST_CY, COST_R = 83, 58, 28
-COST_FONT_SIZE = 30
+COST_CX, COST_CY, COST_R = 83, 58, 56  # circle back to the 2x size, staying here
+COST_FONT_SIZE = 80  # text pushed bigger than the circle alone would suggest
 
 # Suit-medallion socket, bottom-center (measured on FRAME_PATH: the ring's
 # outer decorative rim bulges to about radius 68; SOCKET_R is the flatter

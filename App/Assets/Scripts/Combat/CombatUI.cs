@@ -29,6 +29,14 @@ namespace Baraja.Combat
 
         [HideInInspector] public Transform EnemyContainer;
         [HideInInspector] public GameObject EnemyPanelPrefab;
+        // Top-right HUD block (mirrors PlayerHpText/PlayerEnergyText's
+        // top-left one, silver instead of gold) - one instance per live
+        // enemy, stacked vertically underneath EnemyStatsContainer's own
+        // anchor point. HP/Intent used to be live text baked onto the
+        // enemy card itself; moved here so it reads at a fixed size
+        // regardless of how big the card is on a given screen.
+        [HideInInspector] public Transform EnemyStatsContainer;
+        [HideInInspector] public GameObject EnemyStatsPrefab;
 
         [HideInInspector] public Transform HandContainer;
         [HideInInspector] public GameObject CardButtonPrefab;
@@ -77,10 +85,17 @@ namespace Baraja.Combat
         {
             public EnemyCombatant Enemy;
             public RawImage Image;
+            public Button Button;
+            public GameObject StatsGO;
             public Text HpText;
             public Text IntentText;
-            public Button Button;
         }
+
+        // Vertical gap between one enemy's stats block and the next when a
+        // fight has more than one enemy (e.g. Twin Skulls) - each block is
+        // 100 tall (see MakeEnemyStatsPrefab), plus a real gap so they don't
+        // touch.
+        private const float EnemyStatsBlockSpacing = 120f;
 
         private int _runIndex;
 
@@ -129,20 +144,31 @@ namespace Baraja.Combat
 
         private void BuildEnemyPanels()
         {
-            foreach (var panel in _enemyPanels) Destroy(panel.Button.gameObject);
+            foreach (var panel in _enemyPanels)
+            {
+                Destroy(panel.Button.gameObject);
+                Destroy(panel.StatsGO);
+            }
             _enemyPanels.Clear();
 
             foreach (var enemy in Manager.Enemies)
             {
                 var go = Instantiate(EnemyPanelPrefab, EnemyContainer);
                 go.SetActive(true);
+
+                var statsGO = Instantiate(EnemyStatsPrefab, EnemyStatsContainer);
+                statsGO.SetActive(true);
+                statsGO.GetComponent<RectTransform>().anchoredPosition =
+                    new Vector2(0, -_enemyPanels.Count * EnemyStatsBlockSpacing);
+
                 var panel = new EnemyPanel
                 {
                     Enemy = enemy,
                     Image = go.transform.Find("Image").GetComponent<RawImage>(),
-                    HpText = go.transform.Find("HpText").GetComponent<Text>(),
-                    IntentText = go.transform.Find("IntentText").GetComponent<Text>(),
                     Button = go.GetComponent<Button>(),
+                    StatsGO = statsGO,
+                    HpText = statsGO.transform.Find("HpText").GetComponent<Text>(),
+                    IntentText = statsGO.transform.Find("IntentText").GetComponent<Text>(),
                 };
                 panel.Image.texture = LoadEnemyTexture(enemy.Data.ArtId);
                 panel.Button.onClick.AddListener(() => SelectTarget(panel.Enemy));

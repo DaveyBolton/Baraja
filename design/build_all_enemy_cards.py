@@ -33,8 +33,8 @@ TITLE_FILL = (225, 225, 230, 255)  # silver-toned to match this frame, vs. gold'
 TITLE_STROKE_FILL = (25, 25, 30, 255)
 
 # Cost/number gem socket, top-left corner (measured on FRAME_PATH).
-COST_CX, COST_CY, COST_R = 84, 58, 28
-COST_FONT_SIZE = 30
+COST_CX, COST_CY, COST_R = 84, 58, 56  # circle back to the 2x size, staying here
+COST_FONT_SIZE = 80  # text pushed bigger than the circle alone would suggest
 
 # Suit-medallion socket, bottom-center (measured on FRAME_PATH: outer
 # decorative rim bulges to about radius 69; SOCKET_R is the flatter inner

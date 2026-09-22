@@ -66,21 +66,43 @@ public static class BarajaCombatSceneBuilder
         backdropRT.offsetMin = Vector2.zero;
         backdropRT.offsetMax = Vector2.zero;
 
-        // --- Top bar: player HP / energy, left-aligned so the much bigger
-        // gem End Turn button (added below) has the right side of the bar
-        // to itself instead of overlapping centered text - a standard
-        // stats-left/action-right HUD split. ---
+        // --- Top bar: player HP / energy top-left in gold, enemy HP /
+        // intent top-right in silver - Dave: the enemy stats used to live
+        // as live text baked onto the (dynamically-sized, phone-scaled-down)
+        // enemy card itself, which meant they never actually shrank along
+        // with everything else on a small screen. Moving both stat blocks
+        // to a fixed top HUD, mirrored left/right and color-coded to match
+        // each side's own gold/silver frame theme, fixes that and reads as
+        // a standard stats-left/stats-right split (the much bigger gem End
+        // Turn button still owns the space below the middle). ---
+        Color goldStat = new Color(212f / 255f, 175f / 255f, 55f / 255f);
         Text playerHp = MakeTitleText(canvasGO.transform, "PlayerHpText", new Vector2(30, -30), TextAnchor.UpperLeft, 46);
         playerHp.fontStyle = FontStyle.Bold;
+        playerHp.color = goldStat;
         AnchorTopLeft(playerHp.rectTransform);
         playerHp.rectTransform.sizeDelta = new Vector2(540, 70);
         playerHp.GetComponent<MinScreenFontSize>().MinPixelSize = 38f;
 
         Text playerEnergy = MakeTitleText(canvasGO.transform, "PlayerEnergyText", new Vector2(30, -100), TextAnchor.UpperLeft, 40);
         playerEnergy.fontStyle = FontStyle.Bold;
+        playerEnergy.color = goldStat;
         AnchorTopLeft(playerEnergy.rectTransform);
         playerEnergy.rectTransform.sizeDelta = new Vector2(540, 60);
         playerEnergy.GetComponent<MinScreenFontSize>().MinPixelSize = 34f;
+
+        // Plain parent, top-right, mirroring the player block's top-left
+        // anchor/margin (30,-30) - CombatUI stacks one stats block per
+        // enemy underneath this at runtime (multi-enemy fights like Twin
+        // Skulls need more than one).
+        GameObject enemyStatsContainerGO = new GameObject("EnemyStatsContainer");
+        enemyStatsContainerGO.transform.SetParent(canvasGO.transform, false);
+        RectTransform enemyStatsContainerRT = enemyStatsContainerGO.AddComponent<RectTransform>();
+        enemyStatsContainerRT.anchorMin = new Vector2(1f, 1f);
+        enemyStatsContainerRT.anchorMax = new Vector2(1f, 1f);
+        enemyStatsContainerRT.pivot = new Vector2(1f, 1f);
+        enemyStatsContainerRT.anchoredPosition = new Vector2(-30, -30);
+
+        GameObject enemyStatsPrefab = MakeEnemyStatsPrefab(canvasGO.transform);
 
         // --- Vertical layout, stacked bottom-up so every zone's position is
         // derived from the one below it (never independently guessed) - the
@@ -396,6 +418,8 @@ public static class BarajaCombatSceneBuilder
         ui.EndTurnTextureES = endTurnTextureES;
         ui.EnemyContainer = enemyContainer.transform;
         ui.EnemyPanelPrefab = enemyPanelPrefab;
+        ui.EnemyStatsContainer = enemyStatsContainerGO.transform;
+        ui.EnemyStatsPrefab = enemyStatsPrefab;
         ui.HandContainer = handContent.transform;
         ui.HandScrollRect = handContent.GetComponentInParent<ScrollRect>();
         ui.CardButtonPrefab = cardButtonPrefab;
@@ -415,23 +439,16 @@ public static class BarajaCombatSceneBuilder
         Debug.Log("Baraja combat scene built successfully at " + scenePath);
     }
 
-    // Enemy cards are now the same committed silver-bordered frame as the
+    // Enemy cards are the same committed silver-bordered frame as the
     // player deck (card_frame_v14_silver_zero_margin.png via
     // build_all_enemy_cards.py), on a 736x1040 canvas. That script bakes the
-    // frame, bust, name, cost-gem, and medallion, but intentionally leaves
-    // the band below the title blank - HP, Block, and Intent are all
-    // per-turn dynamic, so they're drawn live here instead of baked.
-    // Fractions below are measured directly against that frame: title block
-    // is centered on y=624 and can run 2 lines (e.g. "Guardian de
-    // Ofrenda"/"Offering Guardian" both wrap at the title's fixed 50pt size),
-    // worst-case bottom ~681 - TextTop starts comfortably after that. The
-    // medallion ring's outer rim starts at y=897 (measured the same way
-    // build_all_enemy_cards.py measures MEDALLION_CY/SOCKET_R) - TextTop and
-    // MedallionTop together give this text ~90px of vertical room, not the
-    // ~1px margin the old frame's geometry left.
-    const float TextLeft = 108f / 736f, TextRight = 628f / 736f;
-    const float TextTop = 720f / 1040f;
-    const float MedallionTop = 897f / 1040f;
+    // frame, bust, name, cost-gem, and medallion - HP/Block/Intent are NOT
+    // baked (they're per-turn dynamic) and are no longer drawn live on the
+    // card either; they moved to EnemyStatsContainer, a fixed top-right HUD
+    // block mirroring the player's top-left one, so they read at a
+    // consistent size regardless of how big the card itself is on a given
+    // screen (Dave: the old on-card text "stays the sam[e] size" relative
+    // to the card when the card scales down for a phone).
 
     // Inactive template instantiated per-enemy by CombatUI; a full card, the
     // same size as a hand card.
@@ -458,45 +475,45 @@ public static class BarajaCombatSceneBuilder
         imgRT.offsetMax = Vector2.zero;
         btn.targetGraphic = img;
 
-        // HP/Block and Intent stacked inside the baked card's blank text
-        // band, sized to leave real clearance above the medallion ring
-        // rather than just filling the band's nominal height - the two
-        // lines together must end comfortably before MedallionTop, with a
-        // margin, or the text visually crowds the ring/skull below it.
-        float textBandTop = TextTop * frameH;
-        float medallionTopY = MedallionTop * frameH;
-        // The new frame's blank band between the title and the medallion is
-        // far roomier than the old one (~90px vs. the old ~51px total), so
-        // this is comfortable rather than squeezed to the ceiling.
-        const float topPad = 2f, safetyMargin = 1f, lineH = 27f;
+        go.SetActive(false);
+        return go;
+    }
 
-        Text hpText = MakeText(go.transform, "HpText", Vector2.zero, TextAnchor.UpperCenter, 21);
-        hpText.font = BarajaFonts.BodySemiBold;
+    // Inactive template instantiated per-enemy by CombatUI, into
+    // EnemyStatsContainer (top-right HUD, mirrors PlayerHpText/
+    // PlayerEnergyText's top-left block). CombatUI stacks these vertically,
+    // one per live enemy, since a fight can have more than one (Twin Skulls).
+    static GameObject MakeEnemyStatsPrefab(Transform parent)
+    {
+        GameObject go = new GameObject("EnemyStatsPrefab");
+        go.transform.SetParent(parent, false);
+        RectTransform rt = go.AddComponent<RectTransform>();
+        rt.anchorMin = new Vector2(1f, 1f);
+        rt.anchorMax = new Vector2(1f, 1f);
+        rt.pivot = new Vector2(1f, 1f);
+        rt.sizeDelta = new Vector2(540, 100); // enough for both lines; CombatUI positions the block itself
+
+        Color silverStat = new Color(200f / 255f, 205f / 255f, 210f / 255f);
+
+        Text hpText = MakeTitleText(go.transform, "HpText", Vector2.zero, TextAnchor.UpperRight, 46);
         hpText.fontStyle = FontStyle.Bold;
-        hpText.rectTransform.anchorMin = new Vector2(0f, 1f);
-        hpText.rectTransform.anchorMax = new Vector2(0f, 1f);
-        hpText.rectTransform.pivot = new Vector2(0f, 1f);
-        hpText.rectTransform.anchoredPosition = new Vector2(TextLeft * frameW, -(textBandTop + topPad));
-        hpText.rectTransform.sizeDelta = new Vector2((TextRight - TextLeft) * frameW, lineH);
-        hpText.GetComponent<MinScreenFontSize>().MinPixelSize = 20f;
+        hpText.color = silverStat;
+        hpText.rectTransform.anchorMin = new Vector2(1f, 1f);
+        hpText.rectTransform.anchorMax = new Vector2(1f, 1f);
+        hpText.rectTransform.pivot = new Vector2(1f, 1f);
+        hpText.rectTransform.anchoredPosition = Vector2.zero;
+        hpText.rectTransform.sizeDelta = new Vector2(540, 70);
+        hpText.GetComponent<MinScreenFontSize>().MinPixelSize = 38f;
 
-        Text intentText = MakeText(go.transform, "IntentText", Vector2.zero, TextAnchor.UpperCenter, 20);
-        intentText.font = BarajaFonts.BodySemiBold;
+        Text intentText = MakeTitleText(go.transform, "IntentText", Vector2.zero, TextAnchor.UpperRight, 40);
         intentText.fontStyle = FontStyle.Bold;
-        intentText.color = new Color(1f, 0.75f, 0.3f);
-        intentText.rectTransform.anchorMin = new Vector2(0f, 1f);
-        intentText.rectTransform.anchorMax = new Vector2(0f, 1f);
-        intentText.rectTransform.pivot = new Vector2(0f, 1f);
-        intentText.rectTransform.anchoredPosition = new Vector2(TextLeft * frameW, -(textBandTop + topPad + lineH));
-        intentText.rectTransform.sizeDelta = new Vector2((TextRight - TextLeft) * frameW, lineH);
-        intentText.GetComponent<MinScreenFontSize>().MinPixelSize = 19f;
-
-        // Guard rail: fail loudly at build time rather than silently
-        // shipping overlap if the frame size or geometry ever changes.
-        float textBottom = textBandTop + topPad + lineH * 2f;
-        if (textBottom > medallionTopY - safetyMargin)
-            Debug.LogWarning($"Enemy card HP/Intent text ({textBottom:F0}px) is too close to the " +
-                              $"medallion ({medallionTopY:F0}px) - shrink lineH or the font sizes.");
+        intentText.color = silverStat;
+        intentText.rectTransform.anchorMin = new Vector2(1f, 1f);
+        intentText.rectTransform.anchorMax = new Vector2(1f, 1f);
+        intentText.rectTransform.pivot = new Vector2(1f, 1f);
+        intentText.rectTransform.anchoredPosition = new Vector2(0, -70);
+        intentText.rectTransform.sizeDelta = new Vector2(540, 60);
+        intentText.GetComponent<MinScreenFontSize>().MinPixelSize = 34f;
 
         go.SetActive(false);
         return go;

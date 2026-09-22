@@ -90,16 +90,22 @@ public static class BarajaCombatSceneBuilder
         // the space the old corner button never needed. Each zone here is
         // (bottom edge = previous top edge + gap), so gaps can never go
         // negative without it being obvious in the math.
-        const float gap = 30f;
+        // gap shrunk 30->20 and logHeight shrunk 280->210 specifically to
+        // free up room for bigger hand/enemy cards (Dave: "make the player
+        // cards and enemy card larger so we can see the text") - the 1080x1920
+        // reference canvas is otherwise fully committed (HUD text needs the
+        // top ~150px, see enemyTop's headroom check below), so growing cards
+        // meant reclaiming space here rather than finding it for free.
+        const float gap = 20f;
         const float endTurnButtonWidth = 440f;
         const float endTurnBottomMargin = 16f;
         float endTurnButtonHeight = endTurnButtonWidth / BarajaGemButtons.Aspect;
         float buttonTop = endTurnBottomMargin + endTurnButtonHeight;
 
-        const float handHeight = 600f; // unchanged - the focused card needs its full scaled-up size
+        const float handHeight = 665f; // was 600 - grown ~11% along with the card below
         float handBottom = buttonTop + gap;
 
-        const float logHeight = 280f; // there was real unused vertical margin left over - use it
+        const float logHeight = 210f; // was 280 - traded for card size; still scrolls, just shows less at once
         // Narrower each time the played-card piles beside it grow to fit
         // bigger, more legible thumbnails (see PlayedCardStack.ThumbSize):
         // 640 -> 570 -> 430.
@@ -107,9 +113,17 @@ public static class BarajaCombatSceneBuilder
         float logBottom = handBottom + handHeight + gap;
         float logTop = logBottom + logHeight;
 
-        const float enemyHeight = 560f; // grown back to fit the bigger enemy card below (frameW 340 -> 380)
+        const float enemyHeight = 615f; // was 560 - grown ~10% along with the card below
         float enemyBottom = logTop + gap;
         float enemyCenterY = enemyBottom + enemyHeight / 2f;
+        // PlayerHpText/PlayerEnergyText occupy roughly the top 150px (y=-30
+        // size 46, y=-100 size 40) - guard rail so a future change to any
+        // zone above doesn't quietly push the enemy row up under the HUD text.
+        float enemyTop = enemyBottom + enemyHeight;
+        const float hudReservedTop = 150f;
+        if (enemyTop > 1920f - hudReservedTop)
+            Debug.LogWarning($"Enemy row top ({enemyTop:F0}) is too close to the HP/Energy HUD text " +
+                              $"(reserved to {1920f - hudReservedTop:F0}) - shrink a zone below it.");
 
         // --- Enemy row, upper-middle ---
         GameObject enemyContainer = new GameObject("EnemyContainer");
@@ -153,8 +167,16 @@ public static class BarajaCombatSceneBuilder
         // and the enemy row's bottom edge, with real margin on both sides.
         float handTop = handBottom + handHeight;
         const float pileMargin = 15f;
-        const float pileHeight = 300f;
-        const float pileWidth = 225f;
+        // Was 300x225 (matching the old PlayedCardStack.ThumbSize 205x290) -
+        // growing handHeight/enemyHeight for bigger cards shrank the actual
+        // gap between handTop and enemyBottom to 250, not enough room for
+        // that same thumbnail plus margin on both sides (this guard rail
+        // caught it: 300 + 2*15 > the new 250 available). Shrunk both the
+        // box AND PlayedCardStack.ThumbSize together to fit with a real
+        // margin, rather than just shrinking this box around an unchanged,
+        // still-too-tall thumbnail.
+        const float pileHeight = 210f;
+        const float pileWidth = 170f;
         float pileBottomY = handTop + pileMargin;
         float pileTopY = pileBottomY + pileHeight;
         float pileBandTop = -(1920f - pileTopY);
@@ -210,6 +232,22 @@ public static class BarajaCombatSceneBuilder
         // card concept left to get subtly wrong. ---
         GameObject handContent = MakeHandScrollContainer(canvasGO.transform, "HandScroll",
             new Vector2(0, handBottom), new Vector2(1080, handHeight));
+
+        // Left/right scroll-hint chevrons over the hand row - only visible
+        // on whichever edge(s) still have more cards scrolled off screen
+        // (see HandScrollArrows). Siblings of the ScrollRect, not children
+        // of its clipped Viewport, so they sit on top instead of being
+        // masked away with the content they're pointing at.
+        float handCenterY = handBottom + handHeight / 2f;
+        const float arrowMargin = 8f;
+        GameObject leftArrow = MakeScrollArrow(canvasGO.transform, "HandLeftArrow",
+            "Assets/Art/UI/arrow_left.png", new Vector2(0f, 0f), new Vector2(arrowMargin, handCenterY));
+        GameObject rightArrow = MakeScrollArrow(canvasGO.transform, "HandRightArrow",
+            "Assets/Art/UI/arrow_right.png", new Vector2(1f, 0f), new Vector2(-arrowMargin, handCenterY));
+        HandScrollArrows handArrows = canvasGO.AddComponent<HandScrollArrows>();
+        handArrows.ScrollRect = handContent.GetComponentInParent<ScrollRect>();
+        handArrows.LeftArrow = leftArrow;
+        handArrows.RightArrow = rightArrow;
 
         GameObject cardButtonPrefab = MakeCardButtonPrefab(canvasGO.transform);
 
@@ -405,7 +443,7 @@ public static class BarajaCombatSceneBuilder
         // Was 340 (used to match the hand card's own size before the hand
         // grew to 408) - grown again now that enemyHeight has the room,
         // same "there's unused space, use it" call as the hand and the log.
-        float frameW = 380f;
+        float frameW = 417f; // was 380 - grown ~10% along with enemyHeight, per Dave's "make it bigger" call
         float frameH = frameW * 1040f / 736f; // matches the card art's real aspect ratio exactly
         rt.sizeDelta = new Vector2(frameW, frameH);
         Button btn = go.AddComponent<Button>();
@@ -470,15 +508,15 @@ public static class BarajaCombatSceneBuilder
         GameObject go = new GameObject("CardButtonPrefab");
         go.transform.SetParent(parent, false);
         RectTransform rt = go.AddComponent<RectTransform>();
-        // 419x592 matches the card art's real 736:1040 aspect ratio exactly
+        // 464x656 matches the card art's real 736:1040 aspect ratio exactly
         // (RawImage has no preserveAspect option, unlike Image, so this has
         // to be exact or the art stretches) - was 340x480, then 408x576,
-        // now nearly filling the hand's own 600-tall band edge to edge
-        // (Dave's repeated call: bigger, and the baked-in card text grows
-        // right along with the card since it's part of the same texture).
-        // The hand scrolls horizontally for the rest rather than shrinking
-        // cards to force more into one screen.
-        rt.sizeDelta = new Vector2(419, 592);
+        // then 419x592, now nearly filling the hand's own 665-tall band edge
+        // to edge (Dave's repeated call: bigger, and the baked-in card text
+        // grows right along with the card since it's part of the same
+        // texture). The hand scrolls horizontally for the rest rather than
+        // shrinking cards to force more into one screen.
+        rt.sizeDelta = new Vector2(464, 656);
         // Point anchor (center/center) - the standard, simplest anchor
         // setup for a HorizontalLayoutGroup child; the layout group drives
         // anchoredPosition itself every rebuild, so this only matters for
@@ -677,6 +715,26 @@ public static class BarajaCombatSceneBuilder
         scrollRect.content = contentRT;
 
         return contentGO;
+    }
+
+    // A small baked gold chevron (Assets/Art/UI/arrow_left|right.png)
+    // anchored to a screen edge, pointing whichever direction that PNG's
+    // own art already faces.
+    static GameObject MakeScrollArrow(Transform parent, string name, string texturePath,
+        Vector2 anchor, Vector2 anchoredPosition)
+    {
+        GameObject go = new GameObject(name);
+        go.transform.SetParent(parent, false);
+        RawImage img = go.AddComponent<RawImage>();
+        img.texture = AssetDatabase.LoadAssetAtPath<Texture2D>(texturePath);
+        RectTransform rt = img.rectTransform;
+        rt.anchorMin = anchor;
+        rt.anchorMax = anchor;
+        rt.pivot = new Vector2(anchor.x, 0.5f);
+        rt.anchoredPosition = anchoredPosition;
+        rt.sizeDelta = new Vector2(56, 84);
+        go.SetActive(false); // HandScrollArrows turns these on only when relevant
+        return go;
     }
 
     static void AnchorTop(RectTransform rt)

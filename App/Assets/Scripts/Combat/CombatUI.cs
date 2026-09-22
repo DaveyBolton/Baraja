@@ -245,6 +245,17 @@ namespace Baraja.Combat
 
             _lastHand.Clear();
             _lastHand.AddRange(hand);
+
+            // Start centered rather than scrolled all the way left - Dave:
+            // "have it start with a card centered in the center of the
+            // playing surface." ForceUpdateCanvases first so the
+            // ContentSizeFitter has already sized Content to the new hand
+            // before normalized position is computed against it (same fix
+            // as the log's own auto-scroll-to-bottom, just centered instead
+            // of pinned to an edge). Harmless when the hand fits on screen
+            // and isn't scrollable at all - ScrollRect just clamps it.
+            Canvas.ForceUpdateCanvases();
+            if (HandScrollRect != null) HandScrollRect.horizontalNormalizedPosition = 0.5f;
         }
 
         private void PlayCard(CardData card)

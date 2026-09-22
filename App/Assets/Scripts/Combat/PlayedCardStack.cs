@@ -17,12 +17,14 @@ namespace Baraja.Combat
     public class PlayedCardStack : MonoBehaviour
     {
         private const int MaxVisible = 1;
-        // Sized to nearly fill the pile's own 225x300 slot
+        // Sized to nearly fill the pile's own 170x210 slot
         // (BarajaCombatSceneBuilder's pileWidth/pileHeight) at the card's
-        // native 736:1040 aspect - that slot itself shrank from a leftover
-        // 290x420 (sized for the old 3-card cascade this never does
-        // anymore) once it turned out to overlap the hand below it.
-        private static readonly Vector2 ThumbSize = new Vector2(205, 290);
+        // native 736:1040 aspect. Shrunk from 205x290 when growing the hand
+        // and enemy cards (Dave: "make the player cards and enemy card
+        // larger") left only 250px between the hand's top edge and the
+        // enemy row's bottom edge - not enough room for a 290-tall
+        // thumbnail plus real margin on both sides.
+        private static readonly Vector2 ThumbSize = new Vector2(149, 210);
 
         private readonly List<RectTransform> _entries = new List<RectTransform>();
 

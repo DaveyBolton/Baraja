@@ -76,33 +76,55 @@ public static class BarajaMainMenuSceneBuilder
         backdropTintRT.offsetMin = Vector2.zero;
         backdropTintRT.offsetMax = Vector2.zero;
 
-        // --- Title panel: always visible underneath whichever overlay is open ---
-        Text title = MakeTitleText(canvasGO.transform, "TitleText", new Vector2(0, -260), TextAnchor.MiddleCenter, 72);
+        // --- Title panel: always visible underneath whichever overlay is
+        // open. Three lines - "Baraja / de los / Muertos" - back at the top
+        // of the screen (Dave: "leave the title at the top"), 50% bigger
+        // than the original single-line size (72pt -> 108pt, box scaled the
+        // same 1.5x). The three nav buttons below it are then spaced
+        // EVENLY across whatever vertical room is left underneath it,
+        // rather than stacked with a fixed small gap - see the space-evenly
+        // math below.
+        const int titleFontSize = 108; // was 72, x1.5
+        const float titleTopMargin = 80f;
+        const float titleHeight = 495f; // was 330 (3 lines at 72pt), x1.5
+        Text title = MakeTitleText(canvasGO.transform, "TitleText", new Vector2(0, -titleTopMargin), TextAnchor.MiddleCenter, titleFontSize);
         AnchorTop(title.rectTransform);
-        title.rectTransform.sizeDelta = new Vector2(1020, 160);
-        title.text = "Baraja de los Muertos";
+        title.rectTransform.sizeDelta = new Vector2(1020, titleHeight);
+        title.text = "Baraja\nde los\nMuertos";
 
         // Vertical spacing between stacked gem buttons has to be derived from
         // the gem's own height, not a leftover offset sized for the old flat
         // rectangle buttons - those were ~90-115px tall, these are 207px, so
         // the old spacing had every button overlapping the next one below it.
         float navButtonHeight = StandardButtonWidth / BarajaGemButtons.Aspect;
-        float navSpacing = navButtonHeight + 24f;
+
+        // Space-evenly: whatever vertical room is left below the title
+        // (down to the bottom of the 1920-tall reference canvas), divided
+        // into 4 equal gaps - above the first button, between each pair,
+        // and below the last one - so the group reads as evenly distributed
+        // across the leftover space rather than clumped under the title.
+        const int buttonCount = 3;
+        float titleBottomFromTop = titleTopMargin + titleHeight;
+        float totalButtonHeight = navButtonHeight * buttonCount;
+        float evenGap = (1920f - titleBottomFromTop - totalButtonHeight) / (buttonCount + 1);
+        float buttonSpacing = navButtonHeight + evenGap; // center-to-center
+        float firstButtonCenterFromTop = titleBottomFromTop + evenGap + navButtonHeight / 2f;
+        float firstButtonY = 960f - firstButtonCenterFromTop; // top-of-screen offset -> CenterAnchor y
 
         // Three nav buttons now - How to Play moved into the combat scene's
         // tutorial banner (CombatTutorialHint), read in context next to the
         // board it describes instead of a menu-only parchment overlay.
         Button playBtn = MakeButton(canvasGO.transform, "PlayButton", StandardButtonWidth, "Play", StandardButtonFontSize, GemColor.Gold);
         CenterAnchor(playBtn.GetComponent<RectTransform>());
-        playBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, navSpacing);
+        playBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, firstButtonY);
 
         Button optionsBtn = MakeButton(canvasGO.transform, "OptionsButton", StandardButtonWidth, "Options", StandardButtonFontSize, GemColor.Purple);
         CenterAnchor(optionsBtn.GetComponent<RectTransform>());
-        optionsBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, 0);
+        optionsBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, firstButtonY - buttonSpacing);
 
         Button storeBtn = MakeButton(canvasGO.transform, "StoreButton", StandardButtonWidth, "Store", StandardButtonFontSize, GemColor.Green);
         CenterAnchor(storeBtn.GetComponent<RectTransform>());
-        storeBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, -navSpacing);
+        storeBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, firstButtonY - buttonSpacing * 2f);
 
         // --- Options overlay ---
         GameObject optionsPanel = MakeOverlayPanel(canvasGO.transform, "OptionsPanel");
@@ -375,7 +397,16 @@ public static class BarajaMainMenuSceneBuilder
 
         Text descText = MakeText(go.transform, "DescText", Vector2.zero, TextAnchor.UpperLeft, 32);
         descText.color = new Color(plateText.r, plateText.g, plateText.b, 0.85f);
-        descText.horizontalOverflow = HorizontalWrapMode.Overflow;
+        // Was HorizontalWrapMode.Overflow - with Best Fit, Overflow mode
+        // makes Unity shrink ONLY against the box's height, ignoring width
+        // entirely, so narrowing sizeDelta.x alone (tried first) did
+        // nothing - the Spanish "Elimina todos los anuncios para siempre."
+        // still rendered at its natural ~544px width and ran straight into
+        // PriceText with zero gap, unchanged. Wrap makes Best Fit actually
+        // respect the box width too, shrinking and/or wrapping to 2 lines
+        // as needed - short descriptions (the common case) still render on
+        // one line exactly as before, since they never approach 350px wide.
+        descText.horizontalOverflow = HorizontalWrapMode.Wrap;
         descText.resizeTextForBestFit = true;
         descText.resizeTextMinSize = 20;
         descText.resizeTextMaxSize = 32;
@@ -384,7 +415,11 @@ public static class BarajaMainMenuSceneBuilder
         descText.rectTransform.pivot = new Vector2(0f, 1f);
         // Kept the same 62px gap below the (now lower) name line.
         descText.rectTransform.anchoredPosition = new Vector2(50, -128);
-        descText.rectTransform.sizeDelta = new Vector2(860, 48);
+        // Width 350 stops it before PriceText's new left edge (960 - 300 -
+        // 240 = 420, minus margin). Height raised 48->96 to leave room for
+        // the rare string that actually needs to wrap to a 2nd line - the
+        // stone panel has plenty of vertical space free below this box.
+        descText.rectTransform.sizeDelta = new Vector2(350, 96);
         Outline descOutline = descText.gameObject.AddComponent<Outline>();
         descOutline.effectColor = new Color(0f, 0f, 0f, 0.75f);
         descOutline.effectDistance = new Vector2(1.5f, -1.5f);
@@ -402,18 +437,33 @@ public static class BarajaMainMenuSceneBuilder
         // what it's actually sitting next to.
         const float rightColumnCenterY = 150f;
 
-        Text priceText = MakeText(go.transform, "PriceText", Vector2.zero, TextAnchor.MiddleRight, 34);
+        // Was 34pt, body font, in a 190x48 box (Dave: "still way toooo
+        // smalllll!!!"). Now matches NameText exactly - same font
+        // (MakeTitleText = Cinzel Decorative Bold) and the same size/BestFit
+        // range/floor (40pt, 24-40, MinPixelSize 32) - "make them the same
+        // size and font of the title of the section it is in." Right edge
+        // stays pinned at -300 (same 20px gap to the Buy gem); box widened
+        // to fit the bigger glyphs, growing leftward into the real slack
+        // there (description text's worst-case width never reaches this
+        // column - see above).
+        Text priceText = MakeTitleText(go.transform, "PriceText", Vector2.zero, TextAnchor.MiddleRight, 40);
         priceText.horizontalOverflow = HorizontalWrapMode.Overflow;
         priceText.resizeTextForBestFit = true;
-        priceText.resizeTextMinSize = 20;
-        priceText.resizeTextMaxSize = 34;
+        priceText.resizeTextMinSize = 24;
+        priceText.resizeTextMaxSize = 40;
         priceText.rectTransform.anchorMin = new Vector2(1f, 0f);
         priceText.rectTransform.anchorMax = new Vector2(1f, 0f);
         priceText.rectTransform.pivot = new Vector2(1f, 0f);
-        priceText.rectTransform.sizeDelta = new Vector2(190, 48);
+        priceText.rectTransform.sizeDelta = new Vector2(240, 56);
         priceText.rectTransform.anchoredPosition = new Vector2(-300, rightColumnCenterY - priceText.rectTransform.sizeDelta.y / 2f);
         priceText.color = Color.white;
-        priceText.GetComponent<MinScreenFontSize>().MinPixelSize = 30f;
+        priceText.GetComponent<MinScreenFontSize>().MinPixelSize = 32f;
+        // Same black-halo treatment as NameText/DescText (Dave: "outline
+        // them in black like the rest of the text") - white text straight
+        // on the mottled stone otherwise loses contrast in places.
+        Outline priceOutline = priceText.gameObject.AddComponent<Outline>();
+        priceOutline.effectColor = new Color(0f, 0f, 0f, 0.85f);
+        priceOutline.effectDistance = new Vector2(2f, -2f);
 
         // Diamond white, bigger, and centered (with Price) on the row's
         // full vertical middle - see rightColumnCenterY above.

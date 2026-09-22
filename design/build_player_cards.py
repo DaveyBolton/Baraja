@@ -1,15 +1,54 @@
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 import os
 
-FRAME_PATH = r"C:\Dev\Baraja\design\card_frame_v4_medallion_matched.png"
-GEOM_REF_PATH = r"C:\Dev\Baraja\design\card_frame_v4_nameplate2x.png"
+# Frame FINAL, committed 2026-09-22 for both EN and ES decks - do not
+# regenerate or otherwise alter this file. Single outer gold filigree
+# border, corners pulled back with plain thin bars on the sides, cost gem
+# top-left, suit-medallion ring bottom-center, one fully open interior (no
+# baked panels - unlike every earlier frame version, so there is nothing
+# left to black-panel-scan for; all geometry below is measured directly on
+# this exact file instead).
+FRAME_PATH = r"C:\Dev\Stephen-AI-Studio\ArtEngine\out\baraja_card_frame_v13\card_frame_v13_zero_margin.png"
 ART_DIR = r"C:\Dev\Stephen-AI-Studio\ArtEngine\out\baraja_player_cards"
 SUIT_DIR = r"C:\Dev\Calaverita\App\Assets\Resources\Art\Skulls\approved"
 OUT_DIR = r"C:\Dev\Baraja\design\cards"  # Spanish (default language)
 OUT_DIR_EN = r"C:\Dev\Baraja\design\cards_en"
 
-BLACK_THRESH = 90
+FONT_PATH = r"C:\Dev\Baraja\App\Assets\Fonts\CinzelDecorative-Bold.ttf"
 DARK_PLATE = (0, 0, 0)
+
+CARD_W, CARD_H = 736, 1040
+
+# Measured directly on FRAME_PATH (flood-filled from center, alpha==0):
+# interior opening spans x 69-667, y 58-979.
+ART_TOP = 68
+ART_BOTTOM_MAX = 576  # keeps clear of the title regardless of a card's own title height
+ART_MAX_W = 520  # width no longer the binding constraint - height budget (508) is now
+ART_OVERSIZE = 1.0  # maxed out per Dave; was 0.85, left ~70px of the box unused
+
+TITLE_CX = 368
+TITLE_CENTER_Y = 624  # 10% of card height above the card's exact midline (520), per Dave
+TITLE_SIZE = 50  # fixed - long names wrap to a second line instead of shrinking
+TITLE_MAX_W = 520
+TITLE_LINE_GAP = 4
+TITLE_STROKE = 2
+TITLE_FILL = (212, 175, 55, 255)
+TITLE_STROKE_FILL = (40, 20, 5, 255)
+
+BODY_SIZE = 34
+BODY_MAX_W = 560
+BODY_GAP_BELOW_TITLE = 65  # widened again per Dave - was 45
+BODY_LINE_GAP = 8
+
+# Cost gem socket, top-left corner (measured on FRAME_PATH by isolating the
+# gem's purple facet color from the surrounding gold).
+COST_CX, COST_CY, COST_R = 83, 58, 28
+COST_FONT_SIZE = 30
+
+# Suit-medallion socket, bottom-center (measured on FRAME_PATH: the ring's
+# outer decorative rim bulges to about radius 68; SOCKET_R is the flatter
+# inner disc, leaving that rim visible around whatever gets pasted there).
+MEDALLION_CX, MEDALLION_CY, SOCKET_R = 368, 972, 50
 
 # suit assignment: the 6 recurring suits cover aggression/control/economy/
 # utility/power/execute; the specials (Candle, Marigold, Rainbow) each
@@ -24,7 +63,7 @@ CARDS = [
          rules="Deal 4 dmg twice.", suit="red_heart_transparent.png"),
     dict(art="llama_de_copal.png", name_es="Llama de Copal", name_en="Copal Flame", cost="1",
          rules="Deal 5 dmg, apply 2 Burn.", suit="special_candle_transparent.png"),
-    dict(art="bomba_de_cempasuchil.png", name_es="Bomba de Cempasuchil", name_en="Marigold Bomb", cost="2",
+    dict(art="bomba_de_cempasuchil.png", name_es="Bomba de Cempas\u00fachil", name_en="Marigold Bomb", cost="2",
          rules="Deal 10 dmg to all enemies.", suit="special_marigold_transparent.png"),
     dict(art="corte_final.png", name_es="Corte Final", name_en="Final Cut", cost="2",
          rules="Deal 8 dmg (16 if enemy below 50% HP).", suit="silver_death_transparent.png"),
@@ -38,7 +77,7 @@ CARDS = [
          rules="Gain 4 Block, draw 1.", suit="special_candle_transparent.png"),
     dict(art="ofrenda_de_oro.png", name_es="Ofrenda de Oro", name_en="Golden Offering", cost="1",
          rules="Draw 2.", suit="green_money_transparent.png"),
-    dict(art="bendicion_real.png", name_es="Bendicion Real", name_en="Royal Blessing", cost="2",
+    dict(art="bendicion_real.png", name_es="Bendici\u00f3n Real", name_en="Royal Blessing", cost="2",
          rules="Gain 8 Block, remove 1 debuff.", suit="purple_royalty_transparent.png"),
     dict(art="suerte_de_catrina.png", name_es="Suerte de Catrina", name_en="Catrina's Luck", cost="1",
          rules="Random: 8 dmg, 8 Block, or draw 2.", suit="rainbow_special_transparent.png"),
@@ -46,7 +85,7 @@ CARDS = [
          rules="Reflect 3 dmg when hit.", suit="purple_royalty_transparent.png"),
     dict(art="vela_eterna.png", name_es="Vela Eterna", name_en="Eternal Candle", cost="1",
          rules="Apply 1 Burn to enemy each turn.", suit="special_candle_transparent.png"),
-    dict(art="corazon_de_rubi.png", name_es="Corazon de Rubi", name_en="Ruby Heart", cost="2",
+    dict(art="corazon_de_rubi.png", name_es="Coraz\u00f3n de Rub\u00ed", name_en="Ruby Heart", cost="2",
          rules="+1 energy per turn, rest of combat.", suit="red_heart_transparent.png"),
     dict(art="diamante_de_hielo.png", name_es="Diamante de Hielo", name_en="Ice Diamond", cost="2",
          rules="+3 Block at the start of each turn.", suit="blue_ice_transparent.png"),
@@ -57,97 +96,37 @@ CARDS = [
 ]
 
 
-def find_black_panels(img, min_h):
-    w, h = img.size
-    cx = w // 2
-    px = img.convert("RGB").load()
-    def is_black(x, y):
-        r, g, b = px[x, y]
-        return r < BLACK_THRESH and g < BLACK_THRESH and b < BLACK_THRESH
-    bands, in_band, start = [], False, 0
-    for y in range(h):
-        black = is_black(cx, y)
-        if black and not in_band:
-            in_band, start = True, y
-        elif not black and in_band:
-            in_band = False
-            if y - start > min_h:
-                bands.append((start, y))
-    if in_band and h - start > min_h:
-        bands.append((start, h))
-    return [b for b in bands if b[0] > 5 and b[1] < h - 5]
-
-
-def panel_x_bounds(img, y):
-    w, _ = img.size
-    px = img.convert("RGB").load()
-    def is_black(x):
-        r, g, b = px[x, y]
-        return r < BLACK_THRESH and g < BLACK_THRESH and b < BLACK_THRESH
-    best, run_start = (0, 0, 0), None
-    for x in range(w):
-        if is_black(x):
-            if run_start is None:
-                run_start = x
-        else:
-            if run_start is not None:
-                length = x - run_start
-                if length > best[0]:
-                    best = (length, run_start, x)
-                run_start = None
-    if run_start is not None:
-        length = w - run_start
-        if length > best[0]:
-            best = (length, run_start, w)
-    return best[1], best[2] - 1
-
-
 def load_font(size):
-    for p in (r"C:\Windows\Fonts\georgiab.ttf", r"C:\Windows\Fonts\segoeuib.ttf"):
-        if os.path.exists(p):
-            return ImageFont.truetype(p, size)
-    return ImageFont.load_default()
+    return ImageFont.truetype(FONT_PATH, size)
 
 
-def make_alpha_frame(frame_rgb, eligible_rects):
-    frame = frame_rgb.convert("RGBA")
-    px = frame.load()
-    w, h = frame.size
-    mask = Image.new("1", (w, h), 0)
-    md = ImageDraw.Draw(mask)
-    for (x0, y0, x1, y1) in eligible_rects:
-        md.rectangle([x0, y0, x1, y1], fill=1)
-    mpx = mask.load()
-    for y in range(h):
-        for x in range(w):
-            if not mpx[x, y]:
-                continue
-            r, g, b, a = px[x, y]
-            if r < BLACK_THRESH and g < BLACK_THRESH and b < BLACK_THRESH:
-                px[x, y] = (r, g, b, 0)
-    return frame
+def wrap_to_width(draw, text, font, max_w, stroke_width=0):
+    # Text never shrinks below its assigned size - a line too wide for the
+    # budget wraps to another line instead (e.g. "Bomba de Cempas\u00fachil"
+    # wraps the title to two lines rather than shrinking it).
+    words, lines, cur = text.split(" "), [], ""
+    for word in words:
+        trial = (cur + " " + word).strip()
+        w = draw.textbbox((0, 0), trial, font=font, stroke_width=stroke_width)[2]
+        if w > max_w and cur:
+            lines.append(cur)
+            cur = word
+        else:
+            cur = trial
+    if cur:
+        lines.append(cur)
+    return lines
 
 
-def geometry():
-    geom_ref = Image.open(GEOM_REF_PATH).convert("RGB")
-    bands = find_black_panels(geom_ref, min_h=100)
-    if len(bands) >= 3:
-        art_band, name_band, text_band = bands[0], bands[1], bands[2]
-    else:
-        art_band, text_band = bands[0], bands[1]
-        name_band = (art_band[1], text_band[0])
-    name_gap_full = name_band
-    name_band = (693, 729)
-    ax, arx = panel_x_bounds(geom_ref, (art_band[0] + art_band[1]) // 2)
-    tx, trx = panel_x_bounds(geom_ref, (text_band[0] + text_band[1]) // 2)
-    nx, nrx = panel_x_bounds(geom_ref, (name_band[0] + name_band[1]) // 2)
-    art_band = (95, art_band[1])
-    return dict(ax=ax, arx=arx, tx=tx, trx=trx, nx=nx, nrx=nrx,
-                art_band=art_band, name_band=name_band, text_band=text_band,
-                name_gap_full=name_gap_full)
-
-
-MEDALLION_CX, MEDALLION_CY, SOCKET_R = 368, 960, 60
+def render_text_layer(text, font, fill, stroke_width=0, stroke_fill=None):
+    # Render oversized then crop to the exact ink bbox, so the returned
+    # image's own top-left IS the visual top-left of the glyphs - callers
+    # can then just center/position this cropped layer directly.
+    canvas = Image.new("RGBA", (CARD_W, 200), (0, 0, 0, 0))
+    d = ImageDraw.Draw(canvas)
+    bbox = d.textbbox((10, 10), text, font=font, stroke_width=stroke_width)
+    d.text((10, 10), text, font=font, fill=fill, stroke_width=stroke_width, stroke_fill=stroke_fill)
+    return canvas.crop(bbox)
 
 
 def swap_medallion_skull(frame_alpha, suit_filename):
@@ -173,95 +152,82 @@ def swap_medallion_skull(frame_alpha, suit_filename):
     return frame_alpha
 
 
-def build_card(card, geo, frame_alpha, w, h, lang="es"):
+def build_card(card, frame_alpha, lang="es"):
     frame_alpha = swap_medallion_skull(frame_alpha, card["suit"])
-    ax, arx = geo["ax"], geo["arx"]
-    tx, trx = geo["tx"], geo["trx"]
-    nx, nrx = geo["nx"], geo["nrx"]
-    art_band, name_band, text_band = geo["art_band"], geo["name_band"], geo["text_band"]
 
-    bg = Image.new("RGB", (w, h), DARK_PLATE)
+    bg = Image.new("RGBA", (CARD_W, CARD_H), DARK_PLATE + (255,))
+
+    # --- card art: square icon-style illustration, own black background,
+    # fit into the open box above the title, centered both ways within it.
     art = Image.open(os.path.join(ART_DIR, card["art"])).convert("RGB")
-    win_cx = (ax + arx) // 2
-    win_top, win_bottom = art_band[0], art_band[1]
-    win_h = win_bottom - win_top
-    oversize = 0.75  # icon art reads better a bit smaller than a bust portrait
-    target_h = int(win_h * oversize)
-    scale = target_h / art.height
-    target_w = int(art.width * scale)
+    box_w, box_h = ART_MAX_W, ART_BOTTOM_MAX - ART_TOP
+    fit_scale = min(box_w / art.width, box_h / art.height) * ART_OVERSIZE
+    target_w, target_h = int(art.width * fit_scale), int(art.height * fit_scale)
     art_resized = art.resize((target_w, target_h), Image.LANCZOS)
-    paste_x = win_cx - target_w // 2
-    paste_y = win_top + (win_h - target_h) // 2
+    paste_x = TITLE_CX - target_w // 2
+    paste_y = ART_TOP + (box_h - target_h) // 2
     bg.paste(art_resized, (paste_x, paste_y))
 
-    plate = Image.new("RGBA", (nrx - nx, name_band[1] - name_band[0]), DARK_PLATE + (255,))
-    bg_rgba = bg.convert("RGBA")
-    bg_rgba.alpha_composite(plate, (nx, name_band[0]))
-    bg = bg_rgba.convert("RGB")
+    mock = Image.alpha_composite(bg, frame_alpha)
+    draw = ImageDraw.Draw(mock)
 
-    mock = bg.convert("RGBA")
-    mock.alpha_composite(frame_alpha)
-    mock = mock.convert("RGB")
-    d = ImageDraw.Draw(mock)
-
-    font_name = load_font(30)
-    font_text = load_font(23)
-    font_cost = load_font(26)
-
+    # --- title: fixed size always, wraps to a second line instead of
+    # shrinking; each line independently centered on x=368, the whole
+    # block (1 or 2 lines) centered on the fixed TITLE_CENTER_Y anchor.
     name = card["name_es"] if lang == "es" else card["name_en"]
-    ncx = (nx + nrx) // 2
-    ncy = (name_band[0] + name_band[1]) // 2
-    d.text((ncx, ncy), name, font=font_name, fill=(240, 225, 200), anchor="mm")
+    title_font = load_font(TITLE_SIZE)
+    title_lines = wrap_to_width(draw, name, title_font, TITLE_MAX_W, stroke_width=TITLE_STROKE)
+    title_layers = [render_text_layer(line, title_font, TITLE_FILL,
+                                       stroke_width=TITLE_STROKE, stroke_fill=TITLE_STROKE_FILL)
+                    for line in title_lines]
+    block_h = sum(l.height for l in title_layers) + TITLE_LINE_GAP * (len(title_layers) - 1)
+    ly = TITLE_CENTER_Y - block_h // 2
+    for layer in title_layers:
+        mock.alpha_composite(layer, (TITLE_CX - layer.width // 2, ly))
+        ly += layer.height + TITLE_LINE_GAP
+    title_block_bottom = ly - TITLE_LINE_GAP
 
-    rules = card["rules"]
-    pad = 18
-    tzx, tzy = tx + pad, text_band[0] + pad
-    max_w = (trx - tx) - 2 * pad
-    words, lines, cur = rules.split(" "), [], ""
-    for word in words:
-        trial = (cur + " " + word).strip()
-        if d.textbbox((0, 0), trial, font=font_text)[2] > max_w and cur:
-            lines.append(cur)
-            cur = word
-        else:
-            cur = trial
-    if cur:
-        lines.append(cur)
-    ly = tzy
-    for line in lines:
-        d.text((tzx, ly), line, font=font_text, fill=(225, 225, 230))
-        ly += 29
+    # --- rules text: fixed size always, same as the title - a sentence
+    # too wide for one line wraps to more lines instead of shrinking. Each
+    # line independently centered ("aligned from the center out").
+    body_font = load_font(BODY_SIZE)
+    sentences = [s.strip() for s in card["rules"].split(".") if s.strip()]
+    ly = title_block_bottom + BODY_GAP_BELOW_TITLE
+    for sentence in sentences:
+        line_text = sentence + "."
+        for wrapped in wrap_to_width(draw, line_text, body_font, BODY_MAX_W, stroke_width=TITLE_STROKE):
+            line_layer = render_text_layer(wrapped, body_font, TITLE_FILL,
+                                            stroke_width=TITLE_STROKE, stroke_fill=TITLE_STROKE_FILL)
+            lx = TITLE_CX - line_layer.width // 2
+            mock.alpha_composite(line_layer, (lx, ly))
+            ly += line_layer.height + BODY_LINE_GAP
 
-    cost_cx, cost_cy = 165, 131
-    gem_r = 40
-    d.ellipse([cost_cx - gem_r, cost_cy - gem_r, cost_cx + gem_r, cost_cy + gem_r],
-              fill=(220, 220, 225), outline=(180, 140, 30), width=5)
+    # --- cost: solid plate over the frame's baked gem (same "erase then
+    # draw the real value" pattern as the suit medallion), so it stays
+    # legible regardless of the gem's own color.
+    d = ImageDraw.Draw(mock)
+    d.ellipse([COST_CX - COST_R, COST_CY - COST_R, COST_CX + COST_R, COST_CY + COST_R],
+              fill=(220, 220, 225, 255), outline=(180, 140, 30, 255), width=4)
+    font_cost = load_font(COST_FONT_SIZE)
     cost_text = card["cost"]
     bbox = d.textbbox((0, 0), cost_text, font=font_cost)
     cw, ch = bbox[2] - bbox[0], bbox[3] - bbox[1]
-    d.text((cost_cx - cw // 2, cost_cy - ch // 2 - bbox[1]), cost_text, font=font_cost, fill=(20, 15, 5))
+    d.text((COST_CX - cw // 2, COST_CY - ch // 2 - bbox[1]), cost_text, font=font_cost, fill=(20, 15, 5, 255))
 
     out_dir = OUT_DIR if lang == "es" else OUT_DIR_EN
     os.makedirs(out_dir, exist_ok=True)
     out_path = os.path.join(out_dir, card["art"])
-    mock.save(out_path)
+    mock.convert("RGB").save(out_path)
     return out_path
 
 
 def main():
-    frame_rgb = Image.open(FRAME_PATH).convert("RGB")
-    w, h = frame_rgb.size
-    geo = geometry()
-    eligible_rects = [
-        (geo["ax"], geo["art_band"][0], 600, geo["art_band"][1]),
-        (geo["nx"], geo["name_gap_full"][0], geo["nrx"], geo["name_gap_full"][1]),
-        (geo["tx"], geo["text_band"][0], geo["trx"], geo["text_band"][1]),
-    ]
-    frame_alpha = make_alpha_frame(frame_rgb, eligible_rects)
+    frame_alpha = Image.open(FRAME_PATH).convert("RGBA")
+    assert frame_alpha.size == (CARD_W, CARD_H), f"frame is {frame_alpha.size}, expected {(CARD_W, CARD_H)}"
 
     for lang in ("es", "en"):
         for card in CARDS:
-            out_path = build_card(card, geo, frame_alpha, w, h, lang=lang)
+            out_path = build_card(card, frame_alpha, lang=lang)
             print("saved", out_path)
 
 

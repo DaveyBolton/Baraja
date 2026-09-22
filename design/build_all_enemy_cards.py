@@ -1,16 +1,45 @@
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 import os
 
-FRAME_PATH = r"C:\Dev\Baraja\design\card_frame_v4_medallion_matched.png"
-GEOM_REF_PATH = r"C:\Dev\Baraja\design\card_frame_v4_nameplate2x.png"
-ART_DIR = r"C:\Dev\Baraja\design\cards_source_clean"  # backgrounds forced to
-                                                        # true black first
+# Same frame family as build_player_cards.py's committed player frame, just
+# silver instead of gold (same FLUX seed 1979140122, same layout prompt with
+# "gold" swapped for "silver" - see ArtEngine/jobs/baraja_card_frame_v14_silver.txt).
+# Do not regenerate or otherwise alter this file.
+FRAME_PATH = r"C:\Dev\Stephen-AI-Studio\ArtEngine\out\baraja_card_frame_v14_silver\card_frame_v14_silver_zero_margin.png"
+ART_DIR = r"C:\Dev\Baraja\design\cards_source_clean"  # bust portraits, black background
 SUIT_DIR = r"C:\Dev\Calaverita\App\Assets\Resources\Art\Skulls\approved"
-OUT_DIR = r"C:\Dev\Baraja\design\cards"  # Spanish (default language)
+OUT_DIR = r"C:\Dev\Baraja\design\cards"  # Spanish (default language) - shares the folder with the player deck
 OUT_DIR_EN = r"C:\Dev\Baraja\design\cards_en"
 
-BLACK_THRESH = 90
+FONT_PATH = r"C:\Dev\Baraja\App\Assets\Fonts\CinzelDecorative-Bold.ttf"
 DARK_PLATE = (0, 0, 0)
+
+CARD_W, CARD_H = 736, 1040
+
+# Measured directly on FRAME_PATH (flood-filled from center, alpha==0):
+# interior opening spans x 71-665, y 62-965.
+ART_TOP = 68
+ART_BOTTOM_MAX = 576
+ART_MAX_W = 520
+ART_OVERSIZE = 1.0
+
+TITLE_CX = 368
+TITLE_CENTER_Y = 624
+TITLE_SIZE = 50  # fixed - long names wrap to a second line instead of shrinking
+TITLE_MAX_W = 520
+TITLE_LINE_GAP = 4
+TITLE_STROKE = 2
+TITLE_FILL = (225, 225, 230, 255)  # silver-toned to match this frame, vs. gold's warm fill
+TITLE_STROKE_FILL = (25, 25, 30, 255)
+
+# Cost/number gem socket, top-left corner (measured on FRAME_PATH).
+COST_CX, COST_CY, COST_R = 84, 58, 28
+COST_FONT_SIZE = 30
+
+# Suit-medallion socket, bottom-center (measured on FRAME_PATH: outer
+# decorative rim bulges to about radius 69; SOCKET_R is the flatter inner
+# disc, leaving that rim visible around whatever gets pasted there).
+MEDALLION_CX, MEDALLION_CY, SOCKET_R = 368, 966, 50
 
 CARDS = [
     dict(art="calaca_menor.png", name_es="Calaca Menor", name_en="Lesser Calaca", num="1",
@@ -37,117 +66,36 @@ CARDS = [
 ]
 
 
-def find_black_panels(img, min_h):
-    w, h = img.size
-    cx = w // 2
-    px = img.convert("RGB").load()
-    def is_black(x, y):
-        r, g, b = px[x, y]
-        return r < BLACK_THRESH and g < BLACK_THRESH and b < BLACK_THRESH
-    bands, in_band, start = [], False, 0
-    for y in range(h):
-        black = is_black(cx, y)
-        if black and not in_band:
-            in_band, start = True, y
-        elif not black and in_band:
-            in_band = False
-            if y - start > min_h:
-                bands.append((start, y))
-    if in_band and h - start > min_h:
-        bands.append((start, h))
-    return [b for b in bands if b[0] > 5 and b[1] < h - 5]
-
-
-def panel_x_bounds(img, y):
-    w, _ = img.size
-    px = img.convert("RGB").load()
-    def is_black(x):
-        r, g, b = px[x, y]
-        return r < BLACK_THRESH and g < BLACK_THRESH and b < BLACK_THRESH
-    best, run_start = (0, 0, 0), None
-    for x in range(w):
-        if is_black(x):
-            if run_start is None:
-                run_start = x
-        else:
-            if run_start is not None:
-                length = x - run_start
-                if length > best[0]:
-                    best = (length, run_start, x)
-                run_start = None
-    if run_start is not None:
-        length = w - run_start
-        if length > best[0]:
-            best = (length, run_start, w)
-    return best[1], best[2] - 1
-
-
 def load_font(size):
-    for p in (r"C:\Windows\Fonts\georgiab.ttf", r"C:\Windows\Fonts\segoeuib.ttf"):
-        if os.path.exists(p):
-            return ImageFont.truetype(p, size)
-    return ImageFont.load_default()
+    return ImageFont.truetype(FONT_PATH, size)
 
 
-def make_alpha_frame(frame_rgb, eligible_rects):
-    """Chroma-key to transparent, but ONLY within the given rectangles
-    (x0, y0, x1, y1). Everywhere else stays fully opaque regardless of
-    color. Without this restriction, dark GAPS between decorative elements
-    (which aren't part of any real content window) key transparent too,
-    letting oversized art bleed through wherever the frame happens to be
-    dark - which is what let art show up outside the intended window."""
-    frame = frame_rgb.convert("RGBA")
-    px = frame.load()
-    w, h = frame.size
-    mask = Image.new("1", (w, h), 0)
-    md = ImageDraw.Draw(mask)
-    for (x0, y0, x1, y1) in eligible_rects:
-        md.rectangle([x0, y0, x1, y1], fill=1)
-    mpx = mask.load()
-    for y in range(h):
-        for x in range(w):
-            if not mpx[x, y]:
-                continue
-            r, g, b, a = px[x, y]
-            if r < BLACK_THRESH and g < BLACK_THRESH and b < BLACK_THRESH:
-                px[x, y] = (r, g, b, 0)
-    return frame
+def wrap_to_width(draw, text, font, max_w, stroke_width=0):
+    # Text never shrinks below its assigned size - a line too wide for the
+    # budget wraps to another line instead.
+    words, lines, cur = text.split(" "), [], ""
+    for word in words:
+        trial = (cur + " " + word).strip()
+        w = draw.textbbox((0, 0), trial, font=font, stroke_width=stroke_width)[2]
+        if w > max_w and cur:
+            lines.append(cur)
+            cur = word
+        else:
+            cur = trial
+    if cur:
+        lines.append(cur)
+    return lines
 
 
-def geometry():
-    geom_ref = Image.open(GEOM_REF_PATH).convert("RGB")
-    bands = find_black_panels(geom_ref, min_h=100)
-    if len(bands) >= 3:
-        art_band, name_band, text_band = bands[0], bands[1], bands[2]
-    else:
-        art_band, text_band = bands[0], bands[1]
-        name_band = (art_band[1], text_band[0])
-    name_gap_full = name_band
-    # name_band above is a crude leftover gap, not a properly-detected panel -
-    # it actually contains THREE separate thin content stripes divided by the
-    # frame's own thin gold accent lines. Narrow it down to just the middle
-    # stripe, where the title text actually sits.
-    name_band = (693, 729)
-    ax, arx = panel_x_bounds(geom_ref, (art_band[0] + art_band[1]) // 2)
-    tx, trx = panel_x_bounds(geom_ref, (text_band[0] + text_band[1]) // 2)
-    # the name plate has its own ornate bracket-shaped border, narrower than
-    # the art/text panels' plain line - measure it on its own.
-    nx, nrx = panel_x_bounds(geom_ref, (name_band[0] + name_band[1]) // 2)
-    # the art panel's true top is right below the corner ornament (~y=95),
-    # not wherever find_black_panels first detects it.
-    art_band = (95, art_band[1])
-    return dict(ax=ax, arx=arx, tx=tx, trx=trx, nx=nx, nrx=nrx,
-                art_band=art_band, name_band=name_band, text_band=text_band,
-                name_gap_full=name_gap_full)
-
-
-MEDALLION_CX, MEDALLION_CY, SOCKET_R = 368, 960, 60
+def render_text_layer(text, font, fill, stroke_width=0, stroke_fill=None):
+    canvas = Image.new("RGBA", (CARD_W, 200), (0, 0, 0, 0))
+    d = ImageDraw.Draw(canvas)
+    bbox = d.textbbox((10, 10), text, font=font, stroke_width=stroke_width)
+    d.text((10, 10), text, font=font, fill=fill, stroke_width=stroke_width, stroke_fill=stroke_fill)
+    return canvas.crop(bbox)
 
 
 def swap_medallion_skull(frame_alpha, suit_filename):
-    """The frame's medallion has Catrina's purple skull baked in. Clear
-    just the socket circle and drop in this card's own suit skull with a
-    soft shadow, same technique as the original medallion build."""
     frame_alpha = frame_alpha.copy()
     d = ImageDraw.Draw(frame_alpha)
     d.ellipse([MEDALLION_CX - SOCKET_R, MEDALLION_CY - SOCKET_R,
@@ -170,101 +118,72 @@ def swap_medallion_skull(frame_alpha, suit_filename):
     return frame_alpha
 
 
-def build_card(card, geo, frame_alpha, w, h, lang="es"):
+def build_card(card, frame_alpha, lang="es"):
     frame_alpha = swap_medallion_skull(frame_alpha, card["suit"])
-    ax, arx = geo["ax"], geo["arx"]
-    tx, trx = geo["tx"], geo["trx"]
-    nx, nrx = geo["nx"], geo["nrx"]
-    art_band, name_band, text_band = geo["art_band"], geo["name_band"], geo["text_band"]
 
-    bg = Image.new("RGB", (w, h), DARK_PLATE)
+    bg = Image.new("RGBA", (CARD_W, CARD_H), DARK_PLATE + (255,))
+
+    # --- enemy portrait: square bust art, own black background, fit into
+    # the open box above the title, centered both ways within it.
     art = Image.open(os.path.join(ART_DIR, card["art"])).convert("RGB")
-    win_cx = (ax + arx) // 2
-    win_top, win_bottom = art_band[0], art_band[1]
-    win_h = win_bottom - win_top
-    oversize = 0.85  # smaller than the window - centered, even black margin
-    target_h = int(win_h * oversize)
-    scale = target_h / art.height  # source is square, so width scales the same
-    target_w = int(art.width * scale)
+    box_w, box_h = ART_MAX_W, ART_BOTTOM_MAX - ART_TOP
+    fit_scale = min(box_w / art.width, box_h / art.height) * ART_OVERSIZE
+    target_w, target_h = int(art.width * fit_scale), int(art.height * fit_scale)
     art_resized = art.resize((target_w, target_h), Image.LANCZOS)
-    paste_x = win_cx - target_w // 2
-    paste_y = win_top + (win_h - target_h) // 2
+    paste_x = TITLE_CX - target_w // 2
+    paste_y = ART_TOP + (box_h - target_h) // 2
     bg.paste(art_resized, (paste_x, paste_y))
 
-    # a clean dark plate behind the whole name gap for contrast
-    plate = Image.new("RGBA", (nrx - nx, name_band[1] - name_band[0]), DARK_PLATE + (255,))
-    bg_rgba = bg.convert("RGBA")
-    bg_rgba.alpha_composite(plate, (nx, name_band[0]))
-    bg = bg_rgba.convert("RGB")
+    mock = Image.alpha_composite(bg, frame_alpha)
+    draw = ImageDraw.Draw(mock)
 
-    mock = bg.convert("RGBA")
-    mock.alpha_composite(frame_alpha)
-    mock = mock.convert("RGB")
-    d = ImageDraw.Draw(mock)
-
-    font_name = load_font(32)
-    font_text = load_font(23)
-    font_cost = load_font(26)
-
+    # --- title: fixed size always, wraps to a second line instead of
+    # shrinking; each line independently centered on x=368, the whole
+    # block (1 or 2 lines) centered on the fixed TITLE_CENTER_Y anchor.
     name = card["name_es"] if lang == "es" else card["name_en"]
-    ncx = (nx + nrx) // 2
-    ncy = (name_band[0] + name_band[1]) // 2
-    d.text((ncx, ncy), name, font=font_name, fill=(240, 225, 200), anchor="mm")
+    title_font = load_font(TITLE_SIZE)
+    title_lines = wrap_to_width(draw, name, title_font, TITLE_MAX_W, stroke_width=TITLE_STROKE)
+    title_layers = [render_text_layer(line, title_font, TITLE_FILL,
+                                       stroke_width=TITLE_STROKE, stroke_fill=TITLE_STROKE_FILL)
+                    for line in title_lines]
+    block_h = sum(l.height for l in title_layers) + TITLE_LINE_GAP * (len(title_layers) - 1)
+    ly = TITLE_CENTER_Y - block_h // 2
+    for layer in title_layers:
+        mock.alpha_composite(layer, (TITLE_CX - layer.width // 2, ly))
+        ly += layer.height + TITLE_LINE_GAP
 
-    rules = card["rules"]
-    pad = 18
-    tzx, tzy = tx + pad, text_band[0] + pad
-    max_w = (trx - tx) - 2 * pad
-    words, lines, cur = rules.split(" "), [], ""
-    for word in words:
-        trial = (cur + " " + word).strip()
-        if d.textbbox((0, 0), trial, font=font_text)[2] > max_w and cur:
-            lines.append(cur)
-            cur = word
-        else:
-            cur = trial
-    if cur:
-        lines.append(cur)
-    ly = tzy
-    for line in lines:
-        d.text((tzx, ly), line, font=font_text, fill=(225, 225, 230))
-        ly += 29
+    # --- rules text is intentionally NOT baked for enemies: HP, Block, and
+    # Intent are all live/dynamic (they change every turn), and CombatUI
+    # already draws them at runtime into this exact band, below the title
+    # (see BarajaCombatSceneBuilder.MakeEnemyPanelPrefab - TextTop/MedallionTop).
+    # Baking the "rules" flavor text here would duplicate and visually
+    # collide with that live text, which is what happened before this fix.
 
-    cost_cx, cost_cy = 165, 131
-    gem_r = 40
-    d.ellipse([cost_cx - gem_r, cost_cy - gem_r, cost_cx + gem_r, cost_cy + gem_r],
-              fill=(220, 220, 225), outline=(180, 140, 30), width=5)
+    # --- number: solid plate over the frame's baked gem (same "erase then
+    # draw the real value" pattern as the suit medallion).
+    d = ImageDraw.Draw(mock)
+    d.ellipse([COST_CX - COST_R, COST_CY - COST_R, COST_CX + COST_R, COST_CY + COST_R],
+              fill=(230, 230, 235, 255), outline=(140, 145, 150, 255), width=4)
+    font_cost = load_font(COST_FONT_SIZE)
     cost_text = card["num"]
     bbox = d.textbbox((0, 0), cost_text, font=font_cost)
     cw, ch = bbox[2] - bbox[0], bbox[3] - bbox[1]
-    d.text((cost_cx - cw // 2, cost_cy - ch // 2 - bbox[1]), cost_text, font=font_cost, fill=(20, 15, 5))
+    d.text((COST_CX - cw // 2, COST_CY - ch // 2 - bbox[1]), cost_text, font=font_cost, fill=(20, 20, 25, 255))
 
     out_dir = OUT_DIR if lang == "es" else OUT_DIR_EN
     os.makedirs(out_dir, exist_ok=True)
     out_path = os.path.join(out_dir, card["art"])
-    mock.save(out_path)
+    mock.convert("RGB").save(out_path)
     return out_path
 
 
 def main():
-    frame_rgb = Image.open(FRAME_PATH).convert("RGB")
-    w, h = frame_rgb.size
-    geo = geometry()
-    # the art panel's right edge (arx, ~578) has a residual strip of the
-    # frame's own un-keyed gradient between it and the outer border - extend
-    # the eligible zone to x=600 to clear it without letting art bleed
-    # outside the window (this zone is still well within the black backdrop,
-    # never reached by the centered/scaled-down character art).
-    eligible_rects = [
-        (geo["ax"], geo["art_band"][0], 600, geo["art_band"][1]),
-        (geo["nx"], geo["name_gap_full"][0], geo["nrx"], geo["name_gap_full"][1]),
-        (geo["tx"], geo["text_band"][0], geo["trx"], geo["text_band"][1]),
-    ]
-    frame_alpha = make_alpha_frame(frame_rgb, eligible_rects)
+    frame_alpha = Image.open(FRAME_PATH).convert("RGBA")
+    assert frame_alpha.size == (CARD_W, CARD_H), f"frame is {frame_alpha.size}, expected {(CARD_W, CARD_H)}"
 
     for lang in ("es", "en"):
         for card in CARDS:
-            out_path = build_card(card, geo, frame_alpha, w, h, lang=lang)
+            out_path = build_card(card, frame_alpha, lang=lang)
             print("saved", out_path)
 
 

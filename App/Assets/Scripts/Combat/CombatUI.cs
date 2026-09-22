@@ -20,6 +20,10 @@ namespace Baraja.Combat
         [HideInInspector] public Text LogText;
         [HideInInspector] public ScrollRect LogScrollRect;
         [HideInInspector] public Button EndTurnButton;
+        // Top-center, between the gold/silver stat blocks - the only manual
+        // way back to the main menu from an active fight (before this, only
+        // an automatic redirect after a loss or clearing the whole run).
+        [HideInInspector] public Button MenuButton;
         // End Turn's gem + label are baked into ONE texture (BarajaButtonBaker),
         // not an image with a separate live Text child - language switches by
         // swapping which baked texture this RawImage shows.
@@ -102,6 +106,7 @@ namespace Baraja.Combat
         private void Awake()
         {
             EndTurnButton.onClick.AddListener(OnEndTurnClicked);
+            MenuButton.onClick.AddListener(OnMenuClicked);
 
             // Subscribed once here, not in BeginFight() - BeginFight() now
             // runs again for every subsequent fight in the run (see
@@ -296,6 +301,12 @@ namespace Baraja.Combat
             if (_resolvingTurn) return; // already mid-animation from a previous click
             StartCoroutine(EndTurnSequence());
         }
+
+        // Abandons the fight in progress - no confirmation, matching how
+        // simple/immediate the tutorial hint's own close button is. Add a
+        // confirmation step here first if accidental taps turn out to be a
+        // real problem in practice.
+        private void OnMenuClicked() => SceneManager.LoadScene("MainMenu");
 
         // EndPlayerTurn() resolves the whole round synchronously (discard,
         // full enemy turn, next player turn's draw all happen before that

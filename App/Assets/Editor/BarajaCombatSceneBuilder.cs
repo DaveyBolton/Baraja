@@ -75,20 +75,28 @@ public static class BarajaCombatSceneBuilder
         // each side's own gold/silver frame theme, fixes that and reads as
         // a standard stats-left/stats-right split (the much bigger gem End
         // Turn button still owns the space below the middle). ---
+        // Sizes 46/40 -> 34/30: at the old sizes, worst-case strings on
+        // each side (e.g. "HP 80/80  Bloqueo 20" opposite "Debilitar 3 +
+        // Ataque 9") measured wide enough together (~1126px combined,
+        // PIL-checked against the real font) to run past each other in the
+        // 1020px window between the two 30px margins - Dave: "make the
+        // titles for the player and enemy a bit smaller so they dont
+        // touch." At 34/30 the same worst-case pair measures ~840px, a real
+        // ~180px of clearance instead of overlapping.
         Color goldStat = new Color(212f / 255f, 175f / 255f, 55f / 255f);
-        Text playerHp = MakeTitleText(canvasGO.transform, "PlayerHpText", new Vector2(30, -30), TextAnchor.UpperLeft, 46);
+        Text playerHp = MakeTitleText(canvasGO.transform, "PlayerHpText", new Vector2(30, -30), TextAnchor.UpperLeft, 34);
         playerHp.fontStyle = FontStyle.Bold;
         playerHp.color = goldStat;
         AnchorTopLeft(playerHp.rectTransform);
-        playerHp.rectTransform.sizeDelta = new Vector2(540, 70);
-        playerHp.GetComponent<MinScreenFontSize>().MinPixelSize = 38f;
+        playerHp.rectTransform.sizeDelta = new Vector2(540, 56);
+        playerHp.GetComponent<MinScreenFontSize>().MinPixelSize = 30f;
 
-        Text playerEnergy = MakeTitleText(canvasGO.transform, "PlayerEnergyText", new Vector2(30, -100), TextAnchor.UpperLeft, 40);
+        Text playerEnergy = MakeTitleText(canvasGO.transform, "PlayerEnergyText", new Vector2(30, -86), TextAnchor.UpperLeft, 30);
         playerEnergy.fontStyle = FontStyle.Bold;
         playerEnergy.color = goldStat;
         AnchorTopLeft(playerEnergy.rectTransform);
-        playerEnergy.rectTransform.sizeDelta = new Vector2(540, 60);
-        playerEnergy.GetComponent<MinScreenFontSize>().MinPixelSize = 34f;
+        playerEnergy.rectTransform.sizeDelta = new Vector2(540, 50);
+        playerEnergy.GetComponent<MinScreenFontSize>().MinPixelSize = 26f;
 
         // Plain parent, top-right, mirroring the player block's top-left
         // anchor/margin (30,-30) - CombatUI stacks one stats block per
@@ -103,6 +111,24 @@ public static class BarajaCombatSceneBuilder
         enemyStatsContainerRT.anchoredPosition = new Vector2(-30, -30);
 
         GameObject enemyStatsPrefab = MakeEnemyStatsPrefab(canvasGO.transform);
+
+        // --- Menu button: top-center, in the free gap between the two
+        // stat blocks - there was no way back to the main menu from an
+        // active fight at all before this (only an automatic redirect
+        // after a loss or clearing the whole run). Real gem button (Dave:
+        // "make the menu a gem"), Silver, matching Close/Back elsewhere.
+        // Widened twice more since (130 -> 195, +50%; label 24 -> 36, +50%)
+        // - at this size it can genuinely overlap the gold/silver stat text
+        // in ordinary play, not just the rare worst-case string-length
+        // scenario the original 130-wide version was sized to just barely
+        // clear. Accepted per Dave's explicit ask; flagged so it isn't a
+        // surprise if it's visibly touching in a screenshot.
+        Button menuBtn = MakeButton(canvasGO.transform, "MenuButton", 195f, "Menu", 36, GemColor.Silver);
+        RectTransform menuBtnRT = menuBtn.GetComponent<RectTransform>();
+        menuBtnRT.anchorMin = new Vector2(0.5f, 1f);
+        menuBtnRT.anchorMax = new Vector2(0.5f, 1f);
+        menuBtnRT.pivot = new Vector2(0.5f, 1f);
+        menuBtnRT.anchoredPosition = new Vector2(0, -30);
 
         // --- Vertical layout, stacked bottom-up so every zone's position is
         // derived from the one below it (never independently guessed) - the
@@ -420,6 +446,7 @@ public static class BarajaCombatSceneBuilder
         ui.EnemyPanelPrefab = enemyPanelPrefab;
         ui.EnemyStatsContainer = enemyStatsContainerGO.transform;
         ui.EnemyStatsPrefab = enemyStatsPrefab;
+        ui.MenuButton = menuBtn;
         ui.HandContainer = handContent.transform;
         ui.HandScrollRect = handContent.GetComponentInParent<ScrollRect>();
         ui.CardButtonPrefab = cardButtonPrefab;
@@ -493,27 +520,30 @@ public static class BarajaCombatSceneBuilder
         rt.pivot = new Vector2(1f, 1f);
         rt.sizeDelta = new Vector2(540, 100); // enough for both lines; CombatUI positions the block itself
 
+        // Same 46/40 -> 34/30 reduction as the player's block (see comment
+        // there) - this is the side that was actually observed touching
+        // the player block in the middle of the screen.
         Color silverStat = new Color(200f / 255f, 205f / 255f, 210f / 255f);
 
-        Text hpText = MakeTitleText(go.transform, "HpText", Vector2.zero, TextAnchor.UpperRight, 46);
+        Text hpText = MakeTitleText(go.transform, "HpText", Vector2.zero, TextAnchor.UpperRight, 34);
         hpText.fontStyle = FontStyle.Bold;
         hpText.color = silverStat;
         hpText.rectTransform.anchorMin = new Vector2(1f, 1f);
         hpText.rectTransform.anchorMax = new Vector2(1f, 1f);
         hpText.rectTransform.pivot = new Vector2(1f, 1f);
         hpText.rectTransform.anchoredPosition = Vector2.zero;
-        hpText.rectTransform.sizeDelta = new Vector2(540, 70);
-        hpText.GetComponent<MinScreenFontSize>().MinPixelSize = 38f;
+        hpText.rectTransform.sizeDelta = new Vector2(540, 56);
+        hpText.GetComponent<MinScreenFontSize>().MinPixelSize = 30f;
 
-        Text intentText = MakeTitleText(go.transform, "IntentText", Vector2.zero, TextAnchor.UpperRight, 40);
+        Text intentText = MakeTitleText(go.transform, "IntentText", Vector2.zero, TextAnchor.UpperRight, 30);
         intentText.fontStyle = FontStyle.Bold;
         intentText.color = silverStat;
         intentText.rectTransform.anchorMin = new Vector2(1f, 1f);
         intentText.rectTransform.anchorMax = new Vector2(1f, 1f);
         intentText.rectTransform.pivot = new Vector2(1f, 1f);
-        intentText.rectTransform.anchoredPosition = new Vector2(0, -70);
-        intentText.rectTransform.sizeDelta = new Vector2(540, 60);
-        intentText.GetComponent<MinScreenFontSize>().MinPixelSize = 34f;
+        intentText.rectTransform.anchoredPosition = new Vector2(0, -56);
+        intentText.rectTransform.sizeDelta = new Vector2(540, 50);
+        intentText.GetComponent<MinScreenFontSize>().MinPixelSize = 26f;
 
         go.SetActive(false);
         return go;
@@ -667,6 +697,47 @@ public static class BarajaCombatSceneBuilder
 
         scrollRect.viewport = viewportRT;
         scrollRect.content = logText.rectTransform;
+
+        // The log always auto-scrolls to the newest line at the bottom
+        // (OnLog sets verticalNormalizedPosition=0), so whatever's above
+        // that is however much of the oldest-still-in-view line the
+        // viewport's RectMask2D happens to slice through - a genuine
+        // partial line, hard-cut mid-glyph, right at the top edge (Dave:
+        // "you dont see remnants of the scrolled text and above and below
+        // the full lines"). Rather than trying to snap scrolling to exact
+        // line boundaries (fragile against MinScreenFontSize's runtime
+        // resizing), fade both edges of the viewport to the same dark tone
+        // the rest of the HUD already uses, so a sliced line blends away
+        // instead of reading as a visible artifact. Siblings of Viewport,
+        // not children of it, so they sit on top of the clipped content
+        // instead of being clipped themselves.
+        Texture2D fadeTex = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Art/UI/gradient_fade.png");
+        const float fadeHeight = 36f;
+
+        GameObject topFadeGO = new GameObject("TopFade");
+        topFadeGO.transform.SetParent(scrollGO.transform, false);
+        RawImage topFade = topFadeGO.AddComponent<RawImage>();
+        topFade.texture = fadeTex;
+        topFade.raycastTarget = false;
+        RectTransform topFadeRT = topFade.rectTransform;
+        topFadeRT.anchorMin = new Vector2(0f, 1f);
+        topFadeRT.anchorMax = new Vector2(1f, 1f);
+        topFadeRT.pivot = new Vector2(0.5f, 1f);
+        topFadeRT.anchoredPosition = Vector2.zero;
+        topFadeRT.sizeDelta = new Vector2(0, fadeHeight);
+
+        GameObject bottomFadeGO = new GameObject("BottomFade");
+        bottomFadeGO.transform.SetParent(scrollGO.transform, false);
+        RawImage bottomFade = bottomFadeGO.AddComponent<RawImage>();
+        bottomFade.texture = fadeTex;
+        bottomFade.raycastTarget = false;
+        RectTransform bottomFadeRT = bottomFade.rectTransform;
+        bottomFadeRT.anchorMin = new Vector2(0f, 0f);
+        bottomFadeRT.anchorMax = new Vector2(1f, 0f);
+        bottomFadeRT.pivot = new Vector2(0.5f, 0f);
+        bottomFadeRT.anchoredPosition = Vector2.zero;
+        bottomFadeRT.sizeDelta = new Vector2(0, fadeHeight);
+        bottomFadeRT.localScale = new Vector3(1f, -1f, 1f); // same texture, flipped so opaque edge faces outward
 
         return logText;
     }

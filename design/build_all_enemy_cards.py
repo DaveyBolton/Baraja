@@ -17,14 +17,26 @@ DARK_PLATE = (0, 0, 0)
 CARD_W, CARD_H = 736, 1040
 
 # Measured directly on FRAME_PATH (flood-filled from center, alpha==0):
-# interior opening spans x 71-665, y 62-965.
+# interior opening spans x 71-665, y 62-965. Enemy cards only ever show the
+# portrait and the title now (HP/Block/Intent moved off the card entirely
+# into the top HUD; there's no rules text either) - Dave: "if the only thing
+# in the enemy card is the pic and title, make those two items fit the whole
+# card, spaced perfectly." Old geometry (art box 68-576, title centered at
+# 624) was inherited from when this card also had to leave room for that
+# now-removed live text below the title, leaving a large dead gap between
+# the title and the medallion ring (which starts at y=897). Redone to use
+# that whole zone: art box grown to 68-713 (was 68-576) and widened to the
+# safe interior width (560, was 520 - portrait art is square, so width is
+# always the binding dimension), title's fixed anchor moved from 624 to 810
+# so a worst-case 2-line title still ends with real clearance (867) before
+# the ring, with a consistent 40px gap below the art either way.
 ART_TOP = 68
-ART_BOTTOM_MAX = 576
-ART_MAX_W = 520
+ART_BOTTOM_MAX = 713
+ART_MAX_W = 560
 ART_OVERSIZE = 1.0
 
 TITLE_CX = 368
-TITLE_CENTER_Y = 624
+TITLE_CENTER_Y = 810
 TITLE_SIZE = 50  # fixed - long names wrap to a second line instead of shrinking
 TITLE_MAX_W = 520
 TITLE_LINE_GAP = 4

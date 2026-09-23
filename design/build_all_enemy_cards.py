@@ -1,13 +1,16 @@
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 import os
 
-# Same frame family as build_player_cards.py's committed player frame, just
-# silver instead of gold (same FLUX seed 1979140122, same layout prompt with
-# "gold" swapped for "silver" - see ArtEngine/jobs/baraja_card_frame_v14_silver.txt).
-# Do not regenerate or otherwise alter this file.
-FRAME_PATH = r"C:\Dev\Stephen-AI-Studio\ArtEngine\out\baraja_card_frame_v14_silver\card_frame_v14_silver_zero_margin.png"
+# Same frame family as build_player_cards.py's committed player frame, glossy
+# black instead of gold/silver (same FLUX seed 1979140122, same layout prompt,
+# material swapped to glossy jet-black lacquer - see
+# ArtEngine/jobs/baraja_card_frame_v16_18_batch.txt, card_frame_v18_gloss_black).
+# Enemies always use this black frame now, per Dave - replaces the old v14
+# silver. Do not regenerate or otherwise alter this file.
+FRAME_PATH = r"C:\Dev\Stephen-AI-Studio\ArtEngine\out\baraja_card_frame_v18_gloss_black\card_frame_v18_gloss_black_zero_margin.png"
 ART_DIR = r"C:\Dev\Baraja\design\cards_source_clean"  # bust portraits, black background
-SUIT_DIR = r"C:\Dev\Calaverita\App\Assets\Resources\Art\Skulls\approved"
+SUIT_DIR = r"C:\Dev\Calaverita\App\Assets\Resources\Art\Skulls\approved"  # unused for medallions now, see BADGE_DIR
+BADGE_DIR = r"C:\Dev\Baraja\design\medallion_badges"
 OUT_DIR = r"C:\Dev\Baraja\design\cards"  # Spanish (default language) - shares the folder with the player deck
 OUT_DIR_EN = r"C:\Dev\Baraja\design\cards_en"
 
@@ -16,20 +19,14 @@ DARK_PLATE = (0, 0, 0)
 
 CARD_W, CARD_H = 736, 1040
 
-# Measured directly on FRAME_PATH (flood-filled from center, alpha==0):
-# interior opening spans x 71-665, y 62-965. Enemy cards only ever show the
-# portrait and the title now (HP/Block/Intent moved off the card entirely
-# into the top HUD; there's no rules text either) - Dave: "if the only thing
-# in the enemy card is the pic and title, make those two items fit the whole
-# card, spaced perfectly." Old geometry (art box 68-576, title centered at
-# 624) was inherited from when this card also had to leave room for that
-# now-removed live text below the title, leaving a large dead gap between
-# the title and the medallion ring (which starts at y=897). Redone to use
-# that whole zone: art box grown to 68-713 (was 68-576) and widened to the
-# safe interior width (560, was 520 - portrait art is square, so width is
-# always the binding dimension), title's fixed anchor moved from 624 to 810
-# so a worst-case 2-line title still ends with real clearance (867) before
-# the ring, with a consistent 40px gap below the art either way.
+# ART_TOP/ART_BOTTOM_MAX/TITLE_CENTER_Y carried over from the old v14 silver
+# geometry rather than re-measured - this frame's ring top measures at
+# y~897 (see MEDALLION_CX/CY below), matching v14's ~897 closely enough that
+# the same art/title box still fits the space up to the medallion ring.
+# COST_CX/CY and MEDALLION_CX/CY do NOT carry over - each generation places
+# its gem/ring a bit differently even at identical scale (the same mistake
+# already made and fixed once this session for the silver/red player decks),
+# so those are measured fresh on THIS frame file.
 ART_TOP = 68
 ART_BOTTOM_MAX = 713
 ART_MAX_W = 560
@@ -41,17 +38,15 @@ TITLE_SIZE = 50  # fixed - long names wrap to a second line instead of shrinking
 TITLE_MAX_W = 520
 TITLE_LINE_GAP = 4
 TITLE_STROKE = 2
-TITLE_FILL = (225, 225, 230, 255)  # silver-toned to match this frame, vs. gold's warm fill
-TITLE_STROKE_FILL = (25, 25, 30, 255)
+TITLE_FILL = (225, 225, 230, 255)  # light, reads well against the black plate background
+TITLE_STROKE_FILL = (10, 10, 12, 255)
 
-# Cost/number gem socket, top-left corner (measured on FRAME_PATH).
-COST_CX, COST_CY, COST_R = 84, 58, 56  # circle back to the 2x size, staying here
+# Cost/number gem socket, top-left corner (measured directly on FRAME_PATH).
+COST_CX, COST_CY, COST_R = 93, 73, 56
 COST_FONT_SIZE = 80  # text pushed bigger than the circle alone would suggest
 
-# Suit-medallion socket, bottom-center (measured on FRAME_PATH: outer
-# decorative rim bulges to about radius 69; SOCKET_R is the flatter inner
-# disc, leaving that rim visible around whatever gets pasted there).
-MEDALLION_CX, MEDALLION_CY, SOCKET_R = 368, 966, 50
+# Suit-medallion socket, bottom-center (measured directly on FRAME_PATH).
+MEDALLION_CX, MEDALLION_CY, SOCKET_R = 366, 963, 50
 
 CARDS = [
     dict(art="calaca_menor.png", name_es="Calaca Menor", name_en="Lesser Calaca", num="1",
@@ -113,20 +108,15 @@ def swap_medallion_skull(frame_alpha, suit_filename):
     d.ellipse([MEDALLION_CX - SOCKET_R, MEDALLION_CY - SOCKET_R,
                MEDALLION_CX + SOCKET_R, MEDALLION_CY + SOCKET_R],
               fill=(20, 15, 10, 255))
-    suit_path = os.path.join(SUIT_DIR, suit_filename)
-    suit = Image.open(suit_path).convert("RGBA")
-    socket_d = int(SOCKET_R * 2 * 0.9)
-    suit.thumbnail((socket_d, socket_d), Image.LANCZOS)
-    sx = MEDALLION_CX - suit.width // 2
-    sy = MEDALLION_CY - suit.height // 2
-    shadow_shape = suit.split()[-1].point(lambda a: 140 if a > 10 else 0)
-    shadow_layer = Image.new("RGBA", suit.size, (0, 0, 0, 255))
-    shadow_layer.putalpha(shadow_shape)
-    shadow_layer = shadow_layer.filter(ImageFilter.GaussianBlur(4))
-    shadow_full = Image.new("RGBA", frame_alpha.size, (0, 0, 0, 0))
-    shadow_full.paste(shadow_layer, (sx + 3, sy + 4), shadow_layer)
-    frame_alpha = Image.alpha_composite(frame_alpha, shadow_full)
-    frame_alpha.alpha_composite(suit, (sx, sy))
+    badge_path = os.path.join(BADGE_DIR, suit_filename.replace("_transparent.png", ".png"))
+    badge = Image.open(badge_path).convert("RGBA")
+    # already a domed, lit, gradient-shaded render - no synthetic drop
+    # shadow needed the way the old flat sprite paste required one.
+    socket_d = int(SOCKET_R * 2 * 1.05)
+    badge.thumbnail((socket_d, socket_d), Image.LANCZOS)
+    sx = MEDALLION_CX - badge.width // 2
+    sy = MEDALLION_CY - badge.height // 2
+    frame_alpha.alpha_composite(badge, (sx, sy))
     return frame_alpha
 
 

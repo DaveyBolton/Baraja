@@ -18,6 +18,18 @@ namespace Baraja.Combat
 
         [HideInInspector] public Text PlayerHpText;
         [HideInInspector] public Text PlayerEnergyText;
+        // Round progress toward a full cleared run (Baraja.Store.
+        // PlayerEntitlements.RoundProgress) - top-left, third line under
+        // HP/Energy. Was "Streak" (top-center, whole-number full-run
+        // count) - redesigned per Dave into a fractional per-fight climb,
+        // and moved here after floating damage numbers were found piling
+        // up on the old top-center spot.
+        [HideInInspector] public Text PlayerRoundText;
+        // Small note under PlayerRoundText, shown only while the current
+        // run's RoundProgress is at or past PlayerEntitlements.
+        // PersonalBestRound - hidden otherwise (Dave: "when you pass your
+        // personal best, maybe a note underneath").
+        [HideInInspector] public Text PlayerRoundBestNoteText;
         [HideInInspector] public Text LogText;
         [HideInInspector] public ScrollRect LogScrollRect;
         [HideInInspector] public Button EndTurnButton;
@@ -75,6 +87,11 @@ namespace Baraja.Combat
         private readonly Queue<Texture2D> _pendingEnemyReveals = new Queue<Texture2D>();
         private bool _resolvingTurn;
         private bool _combatEnded;
+        // The one hand card currently armed by a first tap, awaiting a
+        // confirming second tap (see OnCardTapped) - null when nothing's
+        // pending. Cleared by RebuildHand whenever the hand's own contents
+        // change, since the entries it could point at get destroyed then.
+        private CardHandEntry _pendingEntry;
 
         // Read-only, for CombatUITestAgent to verify clicks actually
         // changed state rather than just not-crashing.
@@ -97,10 +114,15 @@ namespace Baraja.Combat
         }
 
         // Vertical gap between one enemy's stats block and the next when a
-        // fight has more than one enemy (e.g. Twin Skulls) - each block is
-        // 100 tall (see MakeEnemyStatsPrefab), plus a real gap so they don't
-        // touch.
-        private const float EnemyStatsBlockSpacing = 120f;
+        // fight has more than one enemy (e.g. Twin Skulls). Each block's
+        // real content is 106 tall (HpText 56 + IntentText 50, see
+        // MakeEnemyStatsPrefab) even though the prefab's own declared box
+        // was only 100 - at the old 120 spacing that left just 14px of
+        // actual margin, not enough: the two blocks' text visibly ran into
+        // each other in real Twin Skulls screenshots (Dave: "make their
+        // dual cards smaller so they dont cover text" - this overlap
+        // turned out to be independent of card size entirely).
+        private const float EnemyStatsBlockSpacing = 150f;
 
         private int _runIndex;
 
@@ -145,7 +167,24 @@ namespace Baraja.Combat
 
             Manager.StartEncounter(fightNumber);
             BuildEnemyPanels();
+            RefreshRoundText();
             Refresh();
+        }
+
+        private void RefreshRoundText()
+        {
+            float progress = PlayerEntitlements.RoundProgress;
+            PlayerRoundText.text = Spanish ? $"Ronda: {progress:F2}" : $"Round: {progress:F2}";
+
+            // Live comparison, not a stored per-run flag: progress only
+            // reaches/exceeds PersonalBestRound once it's genuinely past a
+            // prior run's record (RecordRoundWin keeps them in lockstep the
+            // moment a new best is set), and a loss's reset to 0 makes this
+            // false again on its own without any extra bookkeeping here.
+            bool atPersonalBest = progress > 0f && progress >= PlayerEntitlements.PersonalBestRound;
+            PlayerRoundBestNoteText.gameObject.SetActive(atPersonalBest);
+            if (atPersonalBest)
+                PlayerRoundBestNoteText.text = Spanish ? "¡Nuevo récord personal!" : "New personal best!";
         }
 
         private void BuildEnemyPanels()
@@ -157,10 +196,25 @@ namespace Baraja.Combat
             }
             _enemyPanels.Clear();
 
+            // Multi-enemy fights (Twin Skulls, so far the only one) pack
+            // 2+ cards side by side in the same HorizontalLayoutGroup that
+            // holds one centered card the rest of the time - at the
+            // single-enemy size (417 wide) that pushes the pair's combined
+            // width out far enough that the LEFT card's left edge lands
+            // inside the top-left PlayerRoundText/PlayerRoundBestNoteText
+            // column (confirmed in a real screenshot: "ROUND:"/"New
+            // personal best!" both showing clipped, cut off by the card's
+            // opaque frame). Shrinking to 300 wide keeps the pair's
+            // combined width comfortably clear of that column while
+            // staying centered on screen, same aspect ratio either way.
+            float cardW = Manager.Enemies.Count > 1 ? 300f : 417f;
+            float cardH = cardW * 1040f / 736f;
+
             foreach (var enemy in Manager.Enemies)
             {
                 var go = Instantiate(EnemyPanelPrefab, EnemyContainer);
                 go.SetActive(true);
+                go.GetComponent<RectTransform>().sizeDelta = new Vector2(cardW, cardH);
 
                 var statsGO = Instantiate(EnemyStatsPrefab, EnemyStatsContainer);
                 statsGO.SetActive(true);
@@ -255,6 +309,11 @@ namespace Baraja.Combat
             // out the index above. Detaching immediately (not just
             // Destroy-ing) makes HandContainer.childCount correct the
             // instant this loop finishes, regardless of GC timing.
+            // Old entries are about to be destroyed - a lingering reference
+            // to one as the "pending" card would leave OnCardTapped
+            // comparing against a dead object next tap.
+            _pendingEntry = null;
+
             var toRemove = new List<Transform>();
             foreach (Transform child in HandContainer) toRemove.Add(child);
             foreach (var child in toRemove)
@@ -271,8 +330,8 @@ namespace Baraja.Combat
                 image.texture = LoadCardTexture(card.Id);
                 var entry = go.AddComponent<CardHandEntry>();
                 entry.CanPlay = Manager.CanPlay(card);
-                var doubleTap = go.AddComponent<DoubleTapToPlay>();
-                doubleTap.OnDoubleTap = () => PlayCard(card);
+                var tapper = go.AddComponent<TapToSelectCard>();
+                tapper.OnTap = () => OnCardTapped(entry, card);
             }
 
             _lastHand.Clear();
@@ -288,6 +347,29 @@ namespace Baraja.Combat
             // and isn't scrollable at all - ScrollRect just clamps it.
             Canvas.ForceUpdateCanvases();
             if (HandScrollRect != null) HandScrollRect.horizontalNormalizedPosition = 0.5f;
+        }
+
+        // First tap on a card arms it (scales it up, sets it pending);
+        // tapping that SAME armed card again confirms and plays it;
+        // tapping a DIFFERENT card instead swaps the pending selection
+        // over to that one rather than playing anything - so pulling back
+        // an armed card and playing a different one costs nothing.
+        private void OnCardTapped(CardHandEntry entry, CardData card)
+        {
+            if (_pendingEntry == entry)
+            {
+                SetPendingEntry(null);
+                PlayCard(card);
+                return;
+            }
+            SetPendingEntry(entry);
+        }
+
+        private void SetPendingEntry(CardHandEntry entry)
+        {
+            if (_pendingEntry != null) _pendingEntry.IsPending = false;
+            _pendingEntry = entry;
+            if (_pendingEntry != null) _pendingEntry.IsPending = true;
         }
 
         private void PlayCard(CardData card)
@@ -376,6 +458,15 @@ namespace Baraja.Combat
             OnLog(Spanish ? (won ? "Ganaste." : "Has caído.") : (won ? "You win." : "You have fallen."));
             EndTurnButton.interactable = false;
             _combatEnded = true;
+
+            // Every fight's outcome touches Round progress now, not just
+            // the run's final one - a won fight (whether or not the run
+            // continues after it) is a round win; any loss ends the run
+            // and resets progress, regardless of how far in it happened.
+            if (won) PlayerEntitlements.RecordRoundWin();
+            else PlayerEntitlements.RecordRunLoss();
+            RefreshRoundText();
+
             StartCoroutine(AfterCombat(won));
         }
 

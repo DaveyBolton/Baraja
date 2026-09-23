@@ -18,6 +18,9 @@ namespace Baraja.Store
         private const string OwnedPrefix = "baraja_owned_";
         private const string EquippedFrameKey = "baraja_equipped_frame";
         private const string DefaultFrame = "gold"; // always owned, never purchasable
+        private const string RoundProgressKey = "baraja_round_progress";
+        private const string PersonalBestRoundKey = "baraja_personal_best_round";
+        private const float RoundIncrement = 0.10f; // 9 regular fights + the boss = 10, so this lands exactly on 1.00
 
         public static bool AdsRemoved
         {
@@ -38,6 +41,36 @@ namespace Baraja.Store
         }
 
         public static bool IsOwned(string itemId) => PlayerPrefs.GetInt(OwnedPrefix + itemId, 0) != 0;
+
+        // "Round" progress toward one full cleared run - climbs +0.10 for
+        // EVERY fight won (not just the final boss fight), so 9 regular
+        // fights plus the boss (10 total) lands exactly on 1.00 - "by the
+        // time you beat La Catrina, you earn one full win" (Dave). Resets
+        // to 0 on any run-ending loss; a won run does NOT reset it - it
+        // keeps climbing into the next run, so back-to-back clears show as
+        // 2.00, 3.00, etc. rather than restarting from 0.
+        public static float RoundProgress
+        {
+            get => PlayerPrefs.GetFloat(RoundProgressKey, 0f);
+            private set => PlayerPrefs.SetFloat(RoundProgressKey, value);
+        }
+
+        // All-time high RoundProgress has ever reached, permanent - never
+        // resets on a loss (that's the whole point: it survives the reset
+        // above so a later run can be compared against it).
+        public static float PersonalBestRound
+        {
+            get => PlayerPrefs.GetFloat(PersonalBestRoundKey, 0f);
+            private set => PlayerPrefs.SetFloat(PersonalBestRoundKey, value);
+        }
+
+        public static void RecordRoundWin()
+        {
+            RoundProgress += RoundIncrement;
+            if (RoundProgress > PersonalBestRound) PersonalBestRound = RoundProgress;
+        }
+
+        public static void RecordRunLoss() => RoundProgress = 0f;
 
         // Which alternate-frame player deck combat currently loads cards
         // from (Resources/Art/Cards/<frame>/{EN,ES}/<cardId>). Defaults to

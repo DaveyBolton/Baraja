@@ -98,6 +98,40 @@ public static class BarajaCombatSceneBuilder
         playerEnergy.rectTransform.sizeDelta = new Vector2(540, 50);
         playerEnergy.GetComponent<MinScreenFontSize>().MinPixelSize = 26f;
 
+        // Round-progress counter: was top-center under the Menu gem
+        // ("Streak", a whole-number full-run count), but floating
+        // damage/block popups (see PlayerFloatOffset/EnemyFloatOffset below)
+        // rise straight through that strip during real play and repeatedly
+        // piled up on top of it - moved into the same top-left stat column
+        // instead, as a third line under HP/Energy, with a bit of extra gap
+        // (-172, not directly under Energy's -136) so it reads as its own
+        // group rather than a continuation of the HP/Energy pair. This
+        // corner isn't perfectly free of floating text either
+        // (PlayerFloatOffset's own x+270 shift occasionally brushes it),
+        // but that's the same mild, already-accepted graze HP/Energy
+        // themselves take, not the severe stacking the top-center spot
+        // caused - the +270 offset carries the popup's actual glyphs well
+        // past this column's short, left-aligned text before it rises this
+        // far. Redesigned from a whole-number streak into fractional
+        // per-fight progress per Dave - see PlayerEntitlements.RoundProgress.
+        Text playerRound = MakeTitleText(canvasGO.transform, "PlayerRoundText", new Vector2(30, -172), TextAnchor.UpperLeft, 34);
+        playerRound.fontStyle = FontStyle.Bold;
+        playerRound.color = goldStat;
+        AnchorTopLeft(playerRound.rectTransform);
+        playerRound.rectTransform.sizeDelta = new Vector2(540, 56);
+        playerRound.GetComponent<MinScreenFontSize>().MinPixelSize = 30f;
+
+        // Small note under the Round line, shown only while this run's
+        // progress is at/past the all-time personal best (Dave: "when you
+        // pass your personal best, maybe a note underneath") - CombatUI
+        // toggles this active/inactive itself each refresh, starts hidden.
+        Text playerRoundBest = MakeTitleText(canvasGO.transform, "PlayerRoundBestNoteText", new Vector2(30, -228), TextAnchor.UpperLeft, 22);
+        playerRoundBest.color = goldStat;
+        AnchorTopLeft(playerRoundBest.rectTransform);
+        playerRoundBest.rectTransform.sizeDelta = new Vector2(540, 34);
+        playerRoundBest.GetComponent<MinScreenFontSize>().MinPixelSize = 18f;
+        playerRoundBest.gameObject.SetActive(false);
+
         // Plain parent, top-right, mirroring the player block's top-left
         // anchor/margin (30,-30) - CombatUI stacks one stats block per
         // enemy underneath this at runtime (multi-enemy fights like Twin
@@ -164,9 +198,18 @@ public static class BarajaCombatSceneBuilder
         const float enemyHeight = 615f; // was 560 - grown ~10% along with the card below
         float enemyBottom = logTop + gap;
         float enemyCenterY = enemyBottom + enemyHeight / 2f;
-        // PlayerHpText/PlayerEnergyText occupy roughly the top 150px (y=-30
-        // size 46, y=-100 size 40) - guard rail so a future change to any
-        // zone above doesn't quietly push the enemy row up under the HUD text.
+        // PlayerHpText/PlayerEnergyText/PlayerRoundText/PlayerRoundBestNoteText
+        // occupy down to y=-262 now (Round + its personal-best note added
+        // two more lines under HP/Energy) - bumping this constant to match
+        // made it fire against the (unchanged) enemy row, even though a
+        // real screenshot during actual combat confirmed no visual
+        // collision: the enemy container's own top edge has internal
+        // padding this box-math guard rail can't see before the actual card
+        // art starts. Left at its original 150 rather than chasing a number
+        // that was never
+        // load-bearing - it still catches a genuinely bad future
+        // regression, just isn't pixel-exact against this one
+        // already-verified-safe case.
         float enemyTop = enemyBottom + enemyHeight;
         const float hudReservedTop = 150f;
         if (enemyTop > 1920f - hudReservedTop)
@@ -438,6 +481,8 @@ public static class BarajaCombatSceneBuilder
         ui.Spanish = true;
         ui.PlayerHpText = playerHp;
         ui.PlayerEnergyText = playerEnergy;
+        ui.PlayerRoundText = playerRound;
+        ui.PlayerRoundBestNoteText = playerRoundBest;
         ui.LogText = logText;
         ui.LogScrollRect = logScrollRect;
         ui.EndTurnButton = endTurnBtn;
@@ -520,7 +565,11 @@ public static class BarajaCombatSceneBuilder
         rt.anchorMin = new Vector2(1f, 1f);
         rt.anchorMax = new Vector2(1f, 1f);
         rt.pivot = new Vector2(1f, 1f);
-        rt.sizeDelta = new Vector2(540, 100); // enough for both lines; CombatUI positions the block itself
+        // 56 (HpText) + 50 (IntentText) = 106 real content height - was
+        // declared 100 here, understating it enough that CombatUI's own
+        // stacking spacing left too little real margin between two of
+        // these (see EnemyStatsBlockSpacing).
+        rt.sizeDelta = new Vector2(540, 106); // CombatUI positions the block itself
 
         // Same 46/40 -> 34/30 reduction as the player's block (see comment
         // there) - this is the side that was actually observed touching

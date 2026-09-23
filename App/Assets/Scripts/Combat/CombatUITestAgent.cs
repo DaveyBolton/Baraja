@@ -11,11 +11,12 @@ namespace Baraja.Combat
 {
     // Unlike CombatScreenshotAgent and BarajaCombatSmokeTest (both call
     // CombatManager.PlayCard/EndPlayerTurn DIRECTLY, bypassing every button,
-    // double-tap handler, and scroll gesture entirely), this drives the REAL
-    // input path through Unity's EventSystem - the same dispatch a real
-    // double-tap, click, or swipe goes through. Game logic passing headless
-    // and screenshots rendering correctly say nothing about whether the UI
-    // is actually wired to that logic; this is what actually proves it.
+    // tap-to-select handler, and scroll gesture entirely), this drives the
+    // REAL input path through Unity's EventSystem - the same dispatch a
+    // real double-tap, click, or swipe goes through. Game logic passing
+    // headless and screenshots rendering correctly say nothing about
+    // whether the UI is actually wired to that logic; this is what
+    // actually proves it.
     //
     // Covers, in order: tutorial dismissal via the X, single-tap NOT
     // playing a card, double-tap playing one, dragging the hand's
@@ -141,6 +142,11 @@ namespace Baraja.Combat
             // --- Single tap must NOT play; double-tap must ---
             yield return TestDoubleTapDiscipline(ui, manager);
 
+            // --- Tapping a DIFFERENT card while one is armed must swap the
+            //     pending selection, not play either one - Dave's actual
+            //     ask ("pull back a card and play another instead") ---
+            yield return TestPendingCardSwap(ui, manager);
+
             // --- Dragging the hand must actually scroll it ---
             yield return TestHandScroll(ui);
 
@@ -249,6 +255,52 @@ namespace Baraja.Combat
                 Pass($"double-tap played a card (hand {beforeDouble} -> {afterDouble})");
         }
 
+        private IEnumerator TestPendingCardSwap(CombatUI ui, CombatManager manager)
+        {
+            var playable = new List<Transform>();
+            foreach (Transform child in ui.HandContainer)
+            {
+                var button = child.GetComponent<Button>();
+                if (button != null && button.interactable) playable.Add(child);
+            }
+            if (playable.Count < 2)
+            {
+                Debug.Log("SRTEST SKIP: fewer than 2 playable cards in hand, can't test pending-card swap");
+                yield break;
+            }
+
+            Transform cardA = playable[0];
+            Transform cardB = playable[1];
+            int before = manager.PlayerDeck.Hand.Count;
+
+            SimulateClick(cardA.gameObject); // arm A
+            yield return null;
+            yield return null;
+            if (manager.PlayerDeck.Hand.Count != before)
+            {
+                Fail("a single tap played a card immediately - pending-card selection isn't armed by one tap");
+                yield break;
+            }
+
+            SimulateClick(cardB.gameObject); // switch to B - must NOT play A
+            yield return null;
+            yield return null;
+            if (manager.PlayerDeck.Hand.Count != before)
+            {
+                Fail($"tapping a different card played something (hand {before} -> {manager.PlayerDeck.Hand.Count}); switching the pending card should never play one");
+                yield break;
+            }
+
+            SimulateClick(cardB.gameObject); // confirm B
+            yield return null;
+            yield return null;
+            int after = manager.PlayerDeck.Hand.Count;
+            if (after == before)
+                Fail("second tap on the newly-armed card did not play it");
+            else
+                Pass($"armed card A, switched to card B without playing anything, then confirmed B (hand {before} -> {after})");
+        }
+
         private IEnumerator TestHandScroll(CombatUI ui)
         {
             var scrollRect = ui.HandScrollRect;
@@ -296,7 +348,11 @@ namespace Baraja.Combat
 
         private IEnumerator PlayFullFightViaRealClicks(CombatUI ui, CombatManager manager)
         {
-            const int maxActions = 60; // generous safety cap against an infinite loop if something's wedged
+            // Was 60; doubled since playing a card now takes two taps (arm,
+            // then confirm the same card again) instead of one clickCount:2
+            // event - still just a generous safety cap against an infinite
+            // loop if something's wedged, not a meaningful behavior limit.
+            const int maxActions = 120;
             const int maxWaitFrames = 1200; // ~separate safety net for EndTurnSequence's real-time reveal/sweep animation
             int framesWaited = 0;
             for (int i = 0; i < maxActions; i++)

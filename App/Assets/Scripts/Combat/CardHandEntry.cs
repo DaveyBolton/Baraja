@@ -13,6 +13,7 @@ namespace Baraja.Combat
     public class CardHandEntry : MonoBehaviour
     {
         private static readonly Color UnaffordableTint = new Color(0.55f, 0.55f, 0.55f, 1f);
+        private const float PendingScale = 1.1f;
 
         private bool _canPlay;
         public bool CanPlay
@@ -28,6 +29,17 @@ namespace Baraja.Combat
                 // to the unaffordable state too, not just the overlap fix.
                 if (graphic != null) graphic.color = value ? Color.white : UnaffordableTint;
             }
+        }
+
+        // First tap marks a card as the pending play (see CombatUI's
+        // OnCardTapped); a visibly bigger card is the affordance that
+        // something is now armed and a second tap will actually play it.
+        // Plain localScale, not anchoredPosition/sizeDelta - those are
+        // fought every layout pass by the hand's HorizontalLayoutGroup,
+        // scale isn't.
+        public bool IsPending
+        {
+            set => transform.localScale = value ? Vector3.one * PendingScale : Vector3.one;
         }
     }
 }

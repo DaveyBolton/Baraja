@@ -183,27 +183,38 @@ namespace Baraja.Menu
                     Debug.LogError($"SRSHOT frame equip check FAIL: expected EquippedFrame={frameId}, got {PlayerEntitlements.EquippedFrame}");
             }
 
-            if (RowIndexForFrame("rainbow") >= 0)
+            // Drive every CardFrame row in StoreDatabase.All order, whatever
+            // its length - this used to be three hardcoded calls (rainbow/
+            // silver/red) with copy-pasted mutual-exclusivity checks between
+            // each pair, which stopped scaling once blue/green/purple/copper/
+            // orange were added alongside them. A plain loop over the
+            // discovered FrameId list covers all of them (and any future
+            // addition) without another copy-paste.
+            var cardFrameIds = new System.Collections.Generic.List<string>();
+            foreach (var storeItem in StoreDatabase.All)
+                if (storeItem.Kind == StoreItemKind.CardFrame) cardFrameIds.Add(storeItem.FrameId);
+
+            if (cardFrameIds.Count > 0)
             {
-                yield return BuyAndEquipFrame("rainbow");
-                yield return BuyAndEquipFrame("silver");
+                string previousFrame = null;
+                foreach (var frameId in cardFrameIds)
+                {
+                    yield return BuyAndEquipFrame(frameId);
 
-                // Mutual-exclusivity check: equipping silver must have
-                // un-equipped rainbow - confirm rainbow's own row now reads
-                // Equip/Equipar again, not Equipado/Equipped, before moving on.
-                var rainbowLabel = RowButtonLabel(RowIndexForFrame("rainbow"));
-                if (rainbowLabel != null && (rainbowLabel.text == "Equipado" || rainbowLabel.text == "Equipped"))
-                    Debug.LogError("SRSHOT mutual-exclusivity FAIL: rainbow still shows Equipped after equipping silver");
-                else
-                    Debug.Log("SRSHOT mutual-exclusivity check PASS: rainbow row no longer shows Equipped after equipping silver");
-
-                yield return BuyAndEquipFrame("red");
-
-                var silverLabel = RowButtonLabel(RowIndexForFrame("silver"));
-                if (silverLabel != null && (silverLabel.text == "Equipado" || silverLabel.text == "Equipped"))
-                    Debug.LogError("SRSHOT mutual-exclusivity FAIL: silver still shows Equipped after equipping red");
-                else
-                    Debug.Log("SRSHOT mutual-exclusivity check PASS: silver row no longer shows Equipped after equipping red");
+                    // Mutual-exclusivity check: equipping this frame must have
+                    // un-equipped whichever one came before it in the loop -
+                    // confirm the previous frame's own row now reads
+                    // Equip/Equipar again, not Equipado/Equipped.
+                    if (previousFrame != null)
+                    {
+                        var previousLabel = RowButtonLabel(RowIndexForFrame(previousFrame));
+                        if (previousLabel != null && (previousLabel.text == "Equipado" || previousLabel.text == "Equipped"))
+                            Debug.LogError($"SRSHOT mutual-exclusivity FAIL: {previousFrame} still shows Equipped after equipping {frameId}");
+                        else
+                            Debug.Log($"SRSHOT mutual-exclusivity check PASS: {previousFrame} row no longer shows Equipped after equipping {frameId}");
+                    }
+                    previousFrame = frameId;
+                }
 
                 // Optional: -srequipfinal <frameId> re-equips a specific
                 // already-owned frame as the very last step, so a follow-up

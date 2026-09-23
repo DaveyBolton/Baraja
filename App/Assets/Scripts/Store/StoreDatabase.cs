@@ -79,6 +79,46 @@ namespace Baraja.Store
                 DescriptionEs = "Baraja completa con marco rubí.",
                 DescriptionEn = "A whole alternate deck with a ruby-red frame.",
             },
+            new StoreItem
+            {
+                Id = "frame_blue", Kind = StoreItemKind.CardFrame, FrameId = "blue", PetalCost = 150,
+                PriceEs = "150 Pétalos", PriceEn = "150 Petals",
+                NameEs = "Marco Zafiro", NameEn = "Sapphire Frame",
+                DescriptionEs = "Baraja completa con marco zafiro.",
+                DescriptionEn = "A whole alternate deck with a sapphire-blue frame.",
+            },
+            new StoreItem
+            {
+                Id = "frame_green", Kind = StoreItemKind.CardFrame, FrameId = "green", PetalCost = 150,
+                PriceEs = "150 Pétalos", PriceEn = "150 Petals",
+                NameEs = "Marco Esmeralda", NameEn = "Emerald Frame",
+                DescriptionEs = "Baraja completa con marco esmeralda.",
+                DescriptionEn = "A whole alternate deck with an emerald-green frame.",
+            },
+            new StoreItem
+            {
+                Id = "frame_purple", Kind = StoreItemKind.CardFrame, FrameId = "purple", PetalCost = 150,
+                PriceEs = "150 Pétalos", PriceEn = "150 Petals",
+                NameEs = "Marco Púrpura Real", NameEn = "Royal Purple Frame",
+                DescriptionEs = "Baraja completa con marco púrpura real.",
+                DescriptionEn = "A whole alternate deck with a royal purple frame.",
+            },
+            new StoreItem
+            {
+                Id = "frame_copper", Kind = StoreItemKind.CardFrame, FrameId = "copper", PetalCost = 150,
+                PriceEs = "150 Pétalos", PriceEn = "150 Petals",
+                NameEs = "Marco Cobre", NameEn = "Copper Frame",
+                DescriptionEs = "Baraja completa con marco de cobre.",
+                DescriptionEn = "A whole alternate deck with a polished copper frame.",
+            },
+            new StoreItem
+            {
+                Id = "frame_orange", Kind = StoreItemKind.CardFrame, FrameId = "orange", PetalCost = 150,
+                PriceEs = "150 Pétalos", PriceEn = "150 Petals",
+                NameEs = "Marco Cempasúchil", NameEn = "Marigold Frame",
+                DescriptionEs = "Baraja completa con marco color cempasúchil.",
+                DescriptionEn = "A whole alternate deck with a marigold-orange frame.",
+            },
         };
 
         public static StoreItem ById(string id)

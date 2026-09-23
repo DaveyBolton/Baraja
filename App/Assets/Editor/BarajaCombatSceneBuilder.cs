@@ -214,7 +214,7 @@ public static class BarajaCombatSceneBuilder
         // instead: centered in the actual gap between the hand's top edge
         // and the enemy row's bottom edge, with real margin on both sides.
         float handTop = handBottom + handHeight;
-        const float pileMargin = 15f;
+        const float pileMargin = 10f;
         // Was 300x225 (matching the old PlayedCardStack.ThumbSize 205x290) -
         // growing handHeight/enemyHeight for bigger cards shrank the actual
         // gap between handTop and enemyBottom to 250, not enough room for
@@ -222,9 +222,11 @@ public static class BarajaCombatSceneBuilder
         // caught it: 300 + 2*15 > the new 250 available). Shrunk both the
         // box AND PlayedCardStack.ThumbSize together to fit with a real
         // margin, rather than just shrinking this box around an unchanged,
-        // still-too-tall thumbnail.
-        const float pileHeight = 210f;
-        const float pileWidth = 170f;
+        // still-too-tall thumbnail. Grown back up slightly (210x170 -> 230x185,
+        // pileMargin 15 -> 10) per Dave - still fits the same 250px gap with
+        // margin to spare (2*10 + 230 = 250, exactly the available room).
+        const float pileHeight = 230f;
+        const float pileWidth = 185f;
         float pileBottomY = handTop + pileMargin;
         float pileTopY = pileBottomY + pileHeight;
         float pileBandTop = -(1920f - pileTopY);

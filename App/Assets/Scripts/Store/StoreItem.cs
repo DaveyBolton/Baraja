@@ -4,7 +4,7 @@ namespace Baraja.Store
     {
         RemoveAds,
         SoftCurrencyPack,   // one-time purchase of "Marigold Petals"
-        CardBackSkin,       // cosmetic, unlocked permanently once bought
+        CardFrame,          // cosmetic: a whole alternate-frame player deck, unlocked permanently once bought
         ReviveToken,        // consumable: continue once after dying mid-run
     }
 
@@ -22,7 +22,8 @@ namespace Baraja.Store
         public string PriceEs;        // soft-currency items only: localized, e.g. "150 Pétalos"
         public string PriceEn;        // soft-currency items only: localized, e.g. "150 Petals"
         public int Amount; // currency granted (SoftCurrencyPack) or tokens granted (ReviveToken)
-        public int PetalCost; // CardBackSkin only: cost in the soft currency, not real money
+        public int PetalCost; // CardFrame only: cost in the soft currency, not real money
+        public string FrameId; // CardFrame only: Resources/Art/Cards/<FrameId>/ subfolder this unlocks
 
         public string DisplayName(bool spanish) => spanish ? NameEs : NameEn;
         public string DisplayDescription(bool spanish) => spanish ? DescriptionEs : DescriptionEn;

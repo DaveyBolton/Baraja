@@ -10,7 +10,14 @@ import os
 # this exact file instead).
 FRAME_PATH = r"C:\Dev\Stephen-AI-Studio\ArtEngine\out\baraja_card_frame_v13\card_frame_v13_zero_margin.png"
 ART_DIR = r"C:\Dev\Stephen-AI-Studio\ArtEngine\out\baraja_player_cards"
-SUIT_DIR = r"C:\Dev\Calaverita\App\Assets\Resources\Art\Skulls\approved"
+SUIT_DIR = r"C:\Dev\Calaverita\App\Assets\Resources\Art\Skulls\approved"  # unused for medallions now, see BADGE_DIR
+# Suit medallions are no longer the flat SUIT_DIR sprite pasted straight in -
+# each one is a FLUX-rendered glossy embossed badge (forge.py edit mode,
+# same character/colors kept, re-rendered as a domed 3D medallion) built
+# once per suit and reused across every deck. Flat-pasting looked like a
+# cheap sticker against these painterly frames - Dave: "DO NOT overlay...
+# Have ComfyUI build em RIGHT."
+BADGE_DIR = r"C:\Dev\Baraja\design\medallion_badges"
 OUT_DIR = r"C:\Dev\Baraja\design\cards"  # Spanish (default language)
 OUT_DIR_EN = r"C:\Dev\Baraja\design\cards_en"
 
@@ -58,41 +65,59 @@ MEDALLION_CX, MEDALLION_CY, SOCKET_R = 368, 972, 50
 # thematic skull (Silver/Death for the grave, Candle for copal-smoke).
 CARDS = [
     dict(art="filo_de_hueso.png", name_es="Filo de Hueso", name_en="Bone Blade", cost="1",
-         rules="Deal 6 dmg.", suit="red_heart_transparent.png"),
+         rules="Deal 6 dmg.", rules_es="Inflige 6 de da\u00f1o.", suit="red_heart_transparent.png"),
     dict(art="golpe_doble.png", name_es="Golpe Doble", name_en="Double Strike", cost="1",
-         rules="Deal 4 dmg twice.", suit="red_heart_transparent.png"),
+         rules="Deal 4 dmg twice.", rules_es="Inflige 4 de da\u00f1o dos veces.", suit="red_heart_transparent.png"),
     dict(art="llama_de_copal.png", name_es="Llama de Copal", name_en="Copal Flame", cost="1",
-         rules="Deal 5 dmg, apply 2 Burn.", suit="special_candle_transparent.png"),
+         rules="Deal 5 dmg, apply 2 Burn.", rules_es="Inflige 5 de da\u00f1o, aplica 2 de Quemadura.",
+         suit="special_candle_transparent.png"),
     dict(art="bomba_de_cempasuchil.png", name_es="Bomba de Cempas\u00fachil", name_en="Marigold Bomb", cost="2",
-         rules="Deal 10 dmg to all enemies.", suit="special_marigold_transparent.png"),
+         rules="Deal 10 dmg to all enemies.", rules_es="Inflige 10 de da\u00f1o a todos los enemigos.",
+         suit="special_marigold_transparent.png"),
     dict(art="corte_final.png", name_es="Corte Final", name_en="Final Cut", cost="2",
-         rules="Deal 8 dmg (16 if enemy below 50% HP).", suit="silver_death_transparent.png"),
+         rules="Deal 8 dmg (16 if enemy below 50% HP).",
+         rules_es="Inflige 8 de da\u00f1o (16 si el enemigo tiene menos del 50% de HP).",
+         suit="silver_death_transparent.png"),
     dict(art="escarcha.png", name_es="Escarcha", name_en="Frostbite", cost="1",
-         rules="Deal 5 dmg, apply Freeze.", suit="blue_ice_transparent.png"),
+         rules="Deal 5 dmg, apply Freeze.", rules_es="Inflige 5 de da\u00f1o, aplica Congelaci\u00f3n.",
+         suit="blue_ice_transparent.png"),
     dict(art="escudo_de_hueso.png", name_es="Escudo de Hueso", name_en="Bone Shield", cost="1",
-         rules="Gain 5 Block.", suit="blue_ice_transparent.png"),
+         rules="Gain 5 Block.", rules_es="Gana 5 de Bloqueo.", suit="blue_ice_transparent.png"),
     dict(art="tumba_sellada.png", name_es="Tumba Sellada", name_en="Sealed Grave", cost="2",
-         rules="Gain 10 Block. Untargetable next turn.", suit="silver_death_transparent.png"),
+         rules="Gain 10 Block. Untargetable next turn.",
+         rules_es="Gana 10 de Bloqueo. No se te puede atacar el pr\u00f3ximo turno.",
+         suit="silver_death_transparent.png"),
     dict(art="humo_de_copal.png", name_es="Humo de Copal", name_en="Copal Smoke", cost="1",
-         rules="Gain 4 Block, draw 1.", suit="special_candle_transparent.png"),
+         rules="Gain 4 Block, draw 1.", rules_es="Gana 4 de Bloqueo, roba 1 carta.",
+         suit="special_candle_transparent.png"),
     dict(art="ofrenda_de_oro.png", name_es="Ofrenda de Oro", name_en="Golden Offering", cost="1",
-         rules="Draw 2.", suit="green_money_transparent.png"),
+         rules="Draw 2.", rules_es="Roba 2 cartas.", suit="green_money_transparent.png"),
     dict(art="bendicion_real.png", name_es="Bendici\u00f3n Real", name_en="Royal Blessing", cost="2",
-         rules="Gain 8 Block, remove 1 debuff.", suit="purple_royalty_transparent.png"),
+         rules="Gain 8 Block, remove 1 debuff.", rules_es="Gana 8 de Bloqueo, elimina 1 debilitaci\u00f3n.",
+         suit="purple_royalty_transparent.png"),
     dict(art="suerte_de_catrina.png", name_es="Suerte de Catrina", name_en="Catrina's Luck", cost="1",
-         rules="Random: 8 dmg, 8 Block, or draw 2.", suit="rainbow_special_transparent.png"),
+         rules="Random: 8 dmg, 8 Block, or draw 2.",
+         rules_es="Aleatorio: 8 de da\u00f1o, 8 de Bloqueo, o roba 2 cartas.",
+         suit="rainbow_special_transparent.png"),
     dict(art="corona_de_espinas.png", name_es="Corona de Espinas", name_en="Crown of Thorns", cost="2",
-         rules="Reflect 3 dmg when hit.", suit="purple_royalty_transparent.png"),
+         rules="Reflect 3 dmg when hit.", rules_es="Refleja 3 de da\u00f1o al recibir un golpe.",
+         suit="purple_royalty_transparent.png"),
     dict(art="vela_eterna.png", name_es="Vela Eterna", name_en="Eternal Candle", cost="1",
-         rules="Apply 1 Burn to enemy each turn.", suit="special_candle_transparent.png"),
+         rules="Apply 1 Burn to enemy each turn.", rules_es="Aplica 1 de Quemadura al enemigo cada turno.",
+         suit="special_candle_transparent.png"),
     dict(art="corazon_de_rubi.png", name_es="Coraz\u00f3n de Rub\u00ed", name_en="Ruby Heart", cost="2",
-         rules="+1 energy per turn, rest of combat.", suit="red_heart_transparent.png"),
+         rules="+1 energy per turn, rest of combat.", rules_es="+1 de energ\u00eda por turno, el resto del combate.",
+         suit="red_heart_transparent.png"),
     dict(art="diamante_de_hielo.png", name_es="Diamante de Hielo", name_en="Ice Diamond", cost="2",
-         rules="+3 Block at the start of each turn.", suit="blue_ice_transparent.png"),
+         rules="+3 Block at the start of each turn.", rules_es="+3 de Bloqueo al inicio de cada turno.",
+         suit="blue_ice_transparent.png"),
     dict(art="reliquia_dorada.png", name_es="Reliquia Dorada", name_en="Golden Relic", cost="2",
-         rules="Deal 5 dmg whenever you play a Power.", suit="gold_gem_transparent.png"),
+         rules="Deal 5 dmg whenever you play a Power.",
+         rules_es="Inflige 5 de da\u00f1o cada vez que juegues un Poder.", suit="gold_gem_transparent.png"),
     dict(art="fuego_fatal.png", name_es="Fuego Fatal", name_en="Fatal Fire", cost="1",
-         rules="Doubles enemy Burn stacks at end of turn.", suit="silver_death_transparent.png"),
+         rules="Doubles enemy Burn stacks at end of turn.",
+         rules_es="Duplica las cargas de Quemadura del enemigo al final del turno.",
+         suit="silver_death_transparent.png"),
 ]
 
 
@@ -135,20 +160,15 @@ def swap_medallion_skull(frame_alpha, suit_filename):
     d.ellipse([MEDALLION_CX - SOCKET_R, MEDALLION_CY - SOCKET_R,
                MEDALLION_CX + SOCKET_R, MEDALLION_CY + SOCKET_R],
               fill=(20, 15, 10, 255))
-    suit_path = os.path.join(SUIT_DIR, suit_filename)
-    suit = Image.open(suit_path).convert("RGBA")
-    socket_d = int(SOCKET_R * 2 * 0.9)
-    suit.thumbnail((socket_d, socket_d), Image.LANCZOS)
-    sx = MEDALLION_CX - suit.width // 2
-    sy = MEDALLION_CY - suit.height // 2
-    shadow_shape = suit.split()[-1].point(lambda a: 140 if a > 10 else 0)
-    shadow_layer = Image.new("RGBA", suit.size, (0, 0, 0, 255))
-    shadow_layer.putalpha(shadow_shape)
-    shadow_layer = shadow_layer.filter(ImageFilter.GaussianBlur(4))
-    shadow_full = Image.new("RGBA", frame_alpha.size, (0, 0, 0, 0))
-    shadow_full.paste(shadow_layer, (sx + 3, sy + 4), shadow_layer)
-    frame_alpha = Image.alpha_composite(frame_alpha, shadow_full)
-    frame_alpha.alpha_composite(suit, (sx, sy))
+    badge_path = os.path.join(BADGE_DIR, suit_filename.replace("_transparent.png", ".png"))
+    badge = Image.open(badge_path).convert("RGBA")
+    # already a domed, lit, gradient-shaded render - no synthetic drop
+    # shadow needed the way the old flat sprite paste required one.
+    socket_d = int(SOCKET_R * 2 * 1.05)
+    badge.thumbnail((socket_d, socket_d), Image.LANCZOS)
+    sx = MEDALLION_CX - badge.width // 2
+    sy = MEDALLION_CY - badge.height // 2
+    frame_alpha.alpha_composite(badge, (sx, sy))
     return frame_alpha
 
 
@@ -191,7 +211,8 @@ def build_card(card, frame_alpha, lang="es"):
     # too wide for one line wraps to more lines instead of shrinking. Each
     # line independently centered ("aligned from the center out").
     body_font = load_font(BODY_SIZE)
-    sentences = [s.strip() for s in card["rules"].split(".") if s.strip()]
+    rules_text = card["rules_es"] if lang == "es" else card["rules"]
+    sentences = [s.strip() for s in rules_text.split(".") if s.strip()]
     ly = title_block_bottom + BODY_GAP_BELOW_TITLE
     for sentence in sentences:
         line_text = sentence + "."

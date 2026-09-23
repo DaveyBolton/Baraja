@@ -125,19 +125,50 @@ namespace Baraja.Menu
                 descText.text = item.DisplayDescription(spanish);
                 priceText.text = item.DisplayPrice(spanish);
 
-                bool owned = (item.Kind == StoreItemKind.CardBackSkin && PlayerEntitlements.IsOwned(item.Id)) ||
-                             (item.Kind == StoreItemKind.RemoveAds && PlayerEntitlements.AdsRemoved);
-                if (owned)
+                if (item.Kind == StoreItemKind.CardFrame)
                 {
-                    buyLabel.text = spanish ? "Comprado" : "Owned";
-                    buyButton.interactable = false;
+                    // Frames never go back to a plain "Owned" state like other
+                    // cosmetics - once owned, the button becomes how you
+                    // switch decks, so it stays live (Equip) except when
+                    // it's the one currently equipped.
+                    bool ownedFrame = PlayerEntitlements.OwnsFrame(item.FrameId);
+                    if (!ownedFrame)
+                    {
+                        buyLabel.text = spanish ? "Comprar" : "Buy";
+                        buyButton.onClick.AddListener(() => OnBuyClicked(item));
+                    }
+                    else if (PlayerEntitlements.EquippedFrame == item.FrameId)
+                    {
+                        buyLabel.text = spanish ? "Equipado" : "Equipped";
+                        buyButton.interactable = false;
+                    }
+                    else
+                    {
+                        buyLabel.text = spanish ? "Equipar" : "Equip";
+                        buyButton.onClick.AddListener(() => OnEquipClicked(item));
+                    }
                 }
                 else
                 {
-                    buyLabel.text = spanish ? "Comprar" : "Buy";
-                    buyButton.onClick.AddListener(() => OnBuyClicked(item));
+                    bool owned = item.Kind == StoreItemKind.RemoveAds && PlayerEntitlements.AdsRemoved;
+                    if (owned)
+                    {
+                        buyLabel.text = spanish ? "Comprado" : "Owned";
+                        buyButton.interactable = false;
+                    }
+                    else
+                    {
+                        buyLabel.text = spanish ? "Comprar" : "Buy";
+                        buyButton.onClick.AddListener(() => OnBuyClicked(item));
+                    }
                 }
             }
+        }
+
+        private void OnEquipClicked(StoreItem item)
+        {
+            PlayerEntitlements.EquipFrame(item.FrameId);
+            RefreshStoreList();
         }
 
         private void OnBuyClicked(StoreItem item)

@@ -49,24 +49,35 @@ namespace Baraja.Store
             },
             new StoreItem
             {
-                Id = "cardback_rainbow", Kind = StoreItemKind.CardBackSkin, PriceEs = "150 Pétalos", PriceEn = "150 Petals", PetalCost = 150,
-                NameEs = "Reverso Catrina Arcoíris", NameEn = "Rainbow Catrina Back",
-                DescriptionEs = "Reverso de carta cosmético.",
-                DescriptionEn = "Cosmetic card back.",
+                Id = "frame_gold", Kind = StoreItemKind.CardFrame, FrameId = "gold", PetalCost = 0,
+                PriceEs = "Incluido", PriceEn = "Included",
+                NameEs = "Marco Dorado", NameEn = "Gold Frame",
+                DescriptionEs = "El marco clásico. Incluido gratis.",
+                DescriptionEn = "The classic frame. Included for free.",
             },
             new StoreItem
             {
-                Id = "cardback_gold", Kind = StoreItemKind.CardBackSkin, PriceEs = "150 Pétalos", PriceEn = "150 Petals", PetalCost = 150,
-                NameEs = "Reverso Reliquia Dorada", NameEn = "Golden Relic Back",
-                DescriptionEs = "Reverso de carta cosmético.",
-                DescriptionEn = "Cosmetic card back.",
+                Id = "frame_rainbow", Kind = StoreItemKind.CardFrame, FrameId = "rainbow", PetalCost = 150,
+                PriceEs = "150 Pétalos", PriceEn = "150 Petals",
+                NameEs = "Marco Arcoíris", NameEn = "Rainbow Frame",
+                DescriptionEs = "Baraja completa con marco arcoíris.",
+                DescriptionEn = "A whole alternate deck with a rainbow frame.",
             },
             new StoreItem
             {
-                Id = "cardback_silver", Kind = StoreItemKind.CardBackSkin, PriceEs = "150 Pétalos", PriceEn = "150 Petals", PetalCost = 150,
-                NameEs = "Reverso Plata Mortal", NameEn = "Silver Death Back",
-                DescriptionEs = "Reverso de carta cosmético.",
-                DescriptionEn = "Cosmetic card back.",
+                Id = "frame_silver", Kind = StoreItemKind.CardFrame, FrameId = "silver", PetalCost = 150,
+                PriceEs = "150 Pétalos", PriceEn = "150 Petals",
+                NameEs = "Marco Plata Brillante", NameEn = "Bright Silver Frame",
+                DescriptionEs = "Baraja completa con marco de plata brillante.",
+                DescriptionEn = "A whole alternate deck with a bright silver frame.",
+            },
+            new StoreItem
+            {
+                Id = "frame_red", Kind = StoreItemKind.CardFrame, FrameId = "red", PetalCost = 150,
+                PriceEs = "150 Pétalos", PriceEn = "150 Petals",
+                NameEs = "Marco Rubí", NameEn = "Ruby Frame",
+                DescriptionEs = "Baraja completa con marco rubí.",
+                DescriptionEn = "A whole alternate deck with a ruby-red frame.",
             },
         };
 

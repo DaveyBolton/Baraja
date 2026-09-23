@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using Baraja.Core;
+using Baraja.Store;
 
 namespace Baraja.Combat
 {
@@ -521,7 +522,8 @@ namespace Baraja.Combat
         private Texture2D LoadCardTexture(string cardId)
         {
             string folder = Spanish ? "ES" : "EN";
-            return Resources.Load<Texture2D>($"Art/Cards/{folder}/{cardId}");
+            string frame = PlayerEntitlements.EquippedFrame;
+            return Resources.Load<Texture2D>($"Art/Cards/{frame}/{folder}/{cardId}");
         }
 
         private Texture2D LoadEnemyTexture(string artId)

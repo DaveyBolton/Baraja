@@ -16,6 +16,8 @@ namespace Baraja.Store
         private const string PetalBalanceKey = "baraja_petal_balance";
         private const string ReviveTokensKey = "baraja_revive_tokens";
         private const string OwnedPrefix = "baraja_owned_";
+        private const string EquippedFrameKey = "baraja_equipped_frame";
+        private const string DefaultFrame = "gold"; // always owned, never purchasable
 
         public static bool AdsRemoved
         {
@@ -37,6 +39,33 @@ namespace Baraja.Store
 
         public static bool IsOwned(string itemId) => PlayerPrefs.GetInt(OwnedPrefix + itemId, 0) != 0;
 
+        // Which alternate-frame player deck combat currently loads cards
+        // from (Resources/Art/Cards/<frame>/{EN,ES}/<cardId>). Defaults to
+        // the free gold deck, which is not itself a purchasable StoreItem
+        // instance you "own" via OwnedPrefix - it's just always available.
+        public static string EquippedFrame
+        {
+            get => PlayerPrefs.GetString(EquippedFrameKey, DefaultFrame);
+            private set => PlayerPrefs.SetString(EquippedFrameKey, value);
+        }
+
+        public static bool OwnsFrame(string frameId)
+        {
+            if (frameId == DefaultFrame) return true;
+            var item = StoreDatabase.All.Find(i => i.Kind == StoreItemKind.CardFrame && i.FrameId == frameId);
+            return item != null && IsOwned(item.Id);
+        }
+
+        // Returns false without changing anything if frameId isn't owned yet
+        // (the UI only ever calls this from an already-owned row, but this
+        // guards the entry point itself rather than trusting the caller).
+        public static bool EquipFrame(string frameId)
+        {
+            if (!OwnsFrame(frameId)) return false;
+            EquippedFrame = frameId;
+            return true;
+        }
+
         public static PurchaseResult Buy(StoreItem item)
         {
             switch (item.Kind)
@@ -54,7 +83,7 @@ namespace Baraja.Store
                     ReviveTokens += item.Amount;
                     return PurchaseResult.Success;
 
-                case StoreItemKind.CardBackSkin:
+                case StoreItemKind.CardFrame:
                     if (IsOwned(item.Id)) return PurchaseResult.AlreadyOwned;
                     if (PetalBalance < item.PetalCost) return PurchaseResult.InsufficientCurrency;
                     PetalBalance -= item.PetalCost;
